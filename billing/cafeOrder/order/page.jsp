@@ -1,0 +1,619 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ include file="../../assets/common/head.jsp" %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Cafe Order</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f2f5; }
+
+        .app-shell { display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
+        .app-nav { flex-shrink: 0; }
+        .view { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+        .view.active { display: flex; }
+
+        /* ── TABLES VIEW ── */
+        .tables-header { background:#1c1c2e; color:#fff; padding:12px 20px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; gap:12px; }
+        .tables-header h4 { font-size:17px; font-weight:700; letter-spacing:.4px; display:flex; align-items:center; gap:8px; }
+        .legend { display:flex; gap:14px; font-size:12px; align-items:center; }
+        .legend-dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+        .tables-body { flex:1; overflow-y:auto; padding:20px; }
+        .tables-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:14px; }
+
+        .table-card { background:#fff; border-radius:14px; padding:18px 12px 14px; text-align:center; cursor:pointer; transition:transform .18s,box-shadow .18s; box-shadow:0 2px 8px rgba(0,0,0,.08); border:2.5px solid transparent; position:relative; user-select:none; }
+        .table-card:hover { transform:translateY(-4px); box-shadow:0 8px 22px rgba(0,0,0,.14); }
+        .table-card:active { transform:scale(.97); }
+        .table-card.available { border-color:#22c55e; }
+        .table-card.occupied  { border-color:#ef4444; background:#fff5f5; }
+        .table-card .tc-icon { font-size:28px; margin-bottom:8px; }
+        .table-card.available .tc-icon { color:#22c55e; }
+        .table-card.occupied  .tc-icon { color:#ef4444; }
+        .table-card .tc-name { font-weight:700; font-size:14px; color:#1c1c2e; margin-bottom:6px; }
+        .table-card .tc-badge { display:inline-block; padding:2px 10px; border-radius:20px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; }
+        .table-card.available .tc-badge { background:#dcfce7; color:#16a34a; }
+        .table-card.occupied  .tc-badge { background:#fee2e2; color:#dc2626; }
+        .table-card .tc-occ-dot { position:absolute; top:8px; right:8px; width:20px; height:20px; background:#ef4444; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:9px; color:#fff; }
+
+        /* ── ORDER VIEW ── */
+        .order-header { background:#1c1c2e; color:#fff; padding:10px 16px; display:flex; align-items:center; gap:12px; flex-shrink:0; }
+        .back-btn { background:rgba(255,255,255,.12); border:none; color:#fff; border-radius:8px; padding:6px 14px; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:6px; transition:background .15s; }
+        .back-btn:hover { background:rgba(255,255,255,.22); }
+        .order-header .table-title { font-size:16px; font-weight:700; flex:1; }
+        .status-pill { font-size:11px; padding:3px 10px; border-radius:20px; font-weight:700; }
+        .status-pill.available { background:#22c55e; color:#fff; }
+        .status-pill.occupied  { background:#ef4444; color:#fff; }
+
+        .order-body { display:flex; flex:1; overflow:hidden; }
+
+        /* left panel */
+        .left-panel { display:flex; flex-direction:column; flex:1; overflow:hidden; border-right:1.5px solid #e5e7eb; background:#f8fafc; }
+        .cat-strip { background:#fff; border-bottom:1.5px solid #e5e7eb; padding:10px 14px; display:flex; gap:8px; overflow-x:auto; flex-shrink:0; scrollbar-width:none; }
+        .cat-strip::-webkit-scrollbar { display:none; }
+        .cat-btn { flex-shrink:0; padding:6px 16px; border-radius:20px; border:2px solid #e2e8f0; background:#fff; color:#64748b; font-size:12px; font-weight:600; cursor:pointer; transition:all .15s; white-space:nowrap; }
+        .cat-btn:hover { border-color:#f5a623; color:#f5a623; }
+        .cat-btn.active { background:#f5a623; border-color:#f5a623; color:#fff; }
+        .prod-search-wrap { padding:10px 14px; background:#fff; border-bottom:1px solid #e5e7eb; flex-shrink:0; }
+        .prod-search { width:100%; border:1.5px solid #e2e8f0; border-radius:10px; padding:8px 14px 8px 36px; font-size:13px; outline:none; background:#f8fafc url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 11px center; transition:border-color .15s; }
+        .prod-search:focus { border-color:#f5a623; }
+        .prod-grid-wrap { flex:1; overflow-y:auto; padding:14px; }
+        .prod-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:10px; }
+
+        .prod-card { background:#fff; border-radius:12px; padding:14px 10px 10px; text-align:center; cursor:pointer; box-shadow:0 1px 4px rgba(0,0,0,.07); border:2px solid transparent; transition:all .15s; position:relative; user-select:none; }
+        .prod-card:hover { border-color:#f5a623; box-shadow:0 4px 14px rgba(245,166,35,.2); transform:translateY(-2px); }
+        .prod-card:active { transform:scale(.97); }
+        .prod-card.in-order { border-color:#22c55e; background:#f0fdf4; }
+        .prod-card .pc-icon { font-size:26px; margin-bottom:6px; color:#94a3b8; }
+        .prod-card.in-order .pc-icon { color:#22c55e; }
+        .prod-card .pc-name { font-size:12px; font-weight:600; color:#1e293b; margin-bottom:4px; line-height:1.3; }
+        .prod-card .pc-code { font-size:10px; color:#94a3b8; margin-bottom:6px; }
+        .prod-card .pc-price { font-size:13px; font-weight:700; color:#f5a623; }
+        .prod-card .pc-qty-badge { position:absolute; top:-6px; right:-6px; background:#22c55e; color:#fff; border-radius:50%; width:22px; height:22px; display:none; align-items:center; justify-content:center; font-size:11px; font-weight:700; }
+        .prod-card.in-order .pc-qty-badge { display:flex; }
+        .prod-empty { grid-column:1/-1; text-align:center; padding:40px 20px; color:#94a3b8; }
+        .prod-empty i { font-size:36px; margin-bottom:10px; display:block; opacity:.4; }
+
+        /* right panel */
+        .right-panel { width:320px; flex-shrink:0; display:flex; flex-direction:column; background:#fff; }
+        .order-summary-header { padding:12px 16px; background:#1c1c2e; color:#fff; font-size:14px; font-weight:700; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+        .order-count-pill { background:#f5a623; color:#1c1c2e; border-radius:20px; padding:2px 10px; font-size:12px; font-weight:700; }
+        .order-items-list { flex:1; overflow-y:auto; padding:8px; }
+        .oi-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#cbd5e1; font-size:13px; text-align:center; padding:20px; }
+        .oi-empty i { font-size:40px; margin-bottom:10px; display:block; }
+        .oi-row { display:flex; align-items:center; gap:8px; padding:8px 6px; border-bottom:1px solid #f1f5f9; animation:fadeSlide .18s ease; }
+        @keyframes fadeSlide { from{opacity:0;transform:translateX(10px)} to{opacity:1;transform:none} }
+        .oi-name { font-size:12px; font-weight:600; color:#1e293b; line-height:1.3; }
+        .oi-price { font-size:11px; color:#94a3b8; }
+        .oi-qty-ctrl { display:flex; align-items:center; gap:4px; }
+        .qty-btn { width:26px; height:26px; border-radius:6px; border:none; font-size:14px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .12s; }
+        .qty-btn.minus { background:#fee2e2; color:#dc2626; }
+        .qty-btn.minus:hover { background:#fca5a5; }
+        .qty-btn.plus  { background:#dcfce7; color:#16a34a; }
+        .qty-btn.plus:hover  { background:#86efac; }
+        .qty-num { min-width:22px; text-align:center; font-size:13px; font-weight:700; color:#1e293b; }
+        .oi-total { font-size:13px; font-weight:700; color:#1e293b; min-width:52px; text-align:right; }
+        .oi-del { background:none; border:none; color:#cbd5e1; cursor:pointer; font-size:14px; padding:2px 4px; transition:color .12s; }
+        .oi-del:hover { color:#ef4444; }
+        .order-footer { flex-shrink:0; border-top:2px solid #f1f5f9; padding:12px 14px; background:#fff; }
+        .total-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+        .total-label { font-size:13px; color:#64748b; font-weight:600; }
+        .total-amount { font-size:22px; font-weight:800; color:#1c1c2e; }
+        .btn-place-order { width:100%; background:#f5a623; color:#1c1c2e; border:none; border-radius:10px; padding:13px; font-size:15px; font-weight:800; cursor:pointer; letter-spacing:.3px; transition:background .15s,transform .12s; display:flex; align-items:center; justify-content:center; gap:8px; }
+        .btn-place-order:hover { background:#e09510; }
+        .btn-place-order:active { transform:scale(.98); }
+        .btn-place-order:disabled { background:#e2e8f0; color:#94a3b8; cursor:not-allowed; }
+        .btn-cancel-order { width:100%; background:#fff; color:#ef4444; border:2px solid #ef4444; border-radius:10px; padding:9px; font-size:13px; font-weight:700; cursor:pointer; margin-top:8px; display:flex; align-items:center; justify-content:center; gap:6px; transition:background .15s; }
+        .btn-cancel-order:hover { background:#fee2e2; }
+
+        @media(max-width:700px) {
+            .order-body { flex-direction:column; }
+            .right-panel { display:none !important; }
+            .tables-grid { grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); }
+            .prod-grid { grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); }
+            /* extra bottom space so FAB doesn't cover last product */
+            .prod-grid-wrap { padding-bottom: 80px; }
+        }
+
+        /* ── MOBILE FLOATING ORDER BAR ── */
+        .mob-order-bar {
+            display: none;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: #1c1c2e;
+            color: #fff;
+            padding: 12px 16px;
+            z-index: 1050;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 -4px 18px rgba(0,0,0,.22);
+        }
+        @media(max-width:700px) {
+            .mob-order-bar { display: flex; }
+        }
+        .mob-order-bar .mob-count {
+            background: #f5a623;
+            color: #1c1c2e;
+            border-radius: 20px;
+            padding: 3px 12px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .mob-order-bar .mob-total {
+            flex: 1;
+            font-size: 15px;
+            font-weight: 800;
+        }
+        .mob-order-bar .mob-place-btn {
+            background: #f5a623;
+            color: #1c1c2e;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        .mob-order-bar .mob-place-btn:disabled { background:#e2e8f0; color:#94a3b8; cursor:not-allowed; }
+
+        /* ── BOTTOM SHEET ── */
+        .bsheet-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.5);
+            z-index: 1060;
+            align-items: flex-end;
+        }
+        .bsheet-overlay.open { display: flex; }
+        .bsheet {
+            background: #fff;
+            width: 100%;
+            border-radius: 20px 20px 0 0;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            transform: translateY(100%);
+            transition: transform .28s cubic-bezier(.4,0,.2,1);
+        }
+        .bsheet-overlay.open .bsheet { transform: translateY(0); }
+        .bsheet-handle {
+            width: 40px; height: 4px;
+            background: #d1d5db;
+            border-radius: 4px;
+            margin: 10px auto 4px;
+            flex-shrink: 0;
+        }
+        .bsheet-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 16px 10px;
+            border-bottom: 1.5px solid #f1f5f9;
+            flex-shrink: 0;
+        }
+        .bsheet-header h6 { font-size:15px; font-weight:700; color:#1c1c2e; margin:0; }
+        .bsheet-close {
+            background: #f1f5f9;
+            border: none;
+            border-radius: 50%;
+            width: 30px; height: 30px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex; align-items:center; justify-content:center;
+            color: #64748b;
+        }
+        .bsheet-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 4px 8px;
+        }
+        .bsheet-footer {
+            padding: 12px 16px;
+            border-top: 2px solid #f1f5f9;
+            flex-shrink: 0;
+        }
+        .bsheet-total-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .bsheet-total-label { font-size:13px; color:#64748b; font-weight:600; }
+        .bsheet-total-amount { font-size:22px; font-weight:800; color:#1c1c2e; }
+        @media(min-width:701px) and (max-width:1024px) {
+            .right-panel { width:280px; }
+        }
+    </style>
+</head>
+<body>
+<div class="app-shell">
+    <div class="app-nav"><jsp:include page="/assets/navbar/navbar.jsp" /></div>
+
+    <!-- ══ TABLES VIEW ══ -->
+    <div class="view active" id="tablesView">
+        <div class="tables-header">
+            <h4><i class="fas fa-store-alt"></i> Cafe Tables</h4>
+            <div class="legend">
+                <span><span class="legend-dot" style="background:#22c55e"></span> Available</span>
+                <span><span class="legend-dot" style="background:#ef4444"></span> Occupied</span>
+            </div>
+            <button style="background:#f5a623;color:#1c1c2e;font-weight:700;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;" onclick="refreshTables()">
+                <i class="fas fa-sync-alt me-1"></i>Refresh
+            </button>
+        </div>
+        <div class="tables-body">
+            <div class="tables-grid" id="tablesGrid">
+                <div style="grid-column:1/-1;text-align:center;padding:40px;color:#94a3b8;">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i><br><br>Loading tables…
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ ORDER VIEW ══ -->
+    <div class="view" id="orderView">
+        <div class="order-header">
+            <button class="back-btn" onclick="goBackToTables()"><i class="fas fa-arrow-left"></i> Tables</button>
+            <div class="table-title"><i class="fas fa-chair me-2"></i><span id="orderTableName">-</span></div>
+            <span class="status-pill available" id="orderStatusPill">Available</span>
+        </div>
+        <div class="order-body">
+            <div class="left-panel">
+                <div class="cat-strip" id="catStrip">
+                    <button class="cat-btn active" onclick="selectCategory(null,this)"><i class="fas fa-th me-1"></i>All</button>
+                </div>
+                <div class="prod-search-wrap">
+                    <input type="text" class="prod-search" id="prodSearch" placeholder="Search menu items…">
+                </div>
+                <div class="prod-grid-wrap">
+                    <div class="prod-grid" id="prodGrid">
+                        <div class="prod-empty"><i class="fas fa-spinner fa-spin"></i> Loading…</div>
+                    </div>
+                </div>
+            </div>
+            <div class="right-panel">
+                <div class="order-summary-header">
+                    <span><i class="fas fa-receipt me-2"></i>Order</span>
+                    <span class="order-count-pill" id="orderCountPill">0 items</span>
+                </div>
+                <div class="order-items-list" id="orderItemsList">
+                    <div class="oi-empty"><i class="fas fa-utensils"></i>Add items from the menu</div>
+                </div>
+                <div class="order-footer">
+                    <div class="total-row">
+                        <span class="total-label">Total</span>
+                        <span class="total-amount">₹<span id="orderTotal">0.00</span></span>
+                    </div>
+                    <button class="btn-place-order" id="btnPlaceOrder" onclick="saveOrder()" disabled>
+                        <i class="fas fa-check-circle"></i> Place Order
+                    </button>
+                    <button class="btn-cancel-order" id="btnCancelOrder" style="display:none;" onclick="cancelOrder()">
+                        <i class="fas fa-times-circle"></i> Cancel Order
+                    </button>
+                </div>
+            </div>
+        </div>
+        <input type="hidden" id="selectedTableId">
+        <input type="hidden" id="currentOrderId">
+        <input type="hidden" id="isTableOccupied">
+    </div>
+
+    <!-- Mobile floating order bar -->
+    <div class="mob-order-bar" id="mobOrderBar">
+        <span class="mob-count" id="mobCountPill" onclick="openBottomSheet()">0 items</span>
+        <span class="mob-total">₹<span id="mobTotal">0.00</span></span>
+        <button class="mob-place-btn" id="mobPlaceBtn" onclick="saveOrder()" disabled>
+            <i class="fas fa-check-circle me-1"></i>Place Order
+        </button>
+    </div>
+</div><!-- end app-shell -->
+
+<!-- Bottom Sheet -->
+<div class="bsheet-overlay" id="bsheetOverlay" onclick="closeBSheetOnBg(event)">
+    <div class="bsheet" id="bsheet">
+        <div class="bsheet-handle"></div>
+        <div class="bsheet-header">
+            <h6><i class="fas fa-receipt me-2"></i>Order Items</h6>
+            <button class="bsheet-close" onclick="closeBottomSheet()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="bsheet-body" id="bsheetBody">
+            <div class="oi-empty"><i class="fas fa-utensils"></i>No items yet</div>
+        </div>
+        <div class="bsheet-footer">
+            <div class="bsheet-total-row">
+                <span class="bsheet-total-label">Total</span>
+                <span class="bsheet-total-amount">₹<span id="bsheetTotal">0.00</span></span>
+            </div>
+            <button class="btn-place-order" id="bsheetPlaceBtn" onclick="saveOrder()" disabled>
+                <i class="fas fa-check-circle"></i> Place Order
+            </button>
+            <button class="btn-cancel-order" id="bsheetCancelBtn" style="display:none;" onclick="cancelOrder()">
+                <i class="fas fa-times-circle"></i> Cancel Order
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+/* ── STATE ── */
+let orderItems = [];
+let allProducts = [];
+let selectedCategoryId = null;
+
+/* ── VIEWS ── */
+function showView(id) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+
+function escJs(s) { return (s+'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+
+/* ── TABLES ── */
+$(document).ready(function(){ loadTables(); });
+
+function loadTables() {
+    $.ajax({ url:'getAvailableTables.jsp', dataType:'json',
+        success: function(tables){ renderTables(tables); },
+        error: function(){ $('#tablesGrid').html('<div style="grid-column:1/-1;text-align:center;color:#ef4444;padding:40px;"><i class="fas fa-exclamation-circle fa-2x"></i><br><br>Error loading tables</div>'); }
+    });
+}
+
+function refreshTables() {
+    $('#tablesGrid').html('<div style="grid-column:1/-1;text-align:center;padding:40px;color:#94a3b8;"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br>Loading…</div>');
+    loadTables();
+}
+
+function renderTables(tables) {
+    if (!tables || tables.length === 0) {
+        $('#tablesGrid').html('<div style="grid-column:1/-1;text-align:center;padding:40px;color:#94a3b8;"><i class="fas fa-chair fa-2x" style="opacity:.3"></i><br><br>No tables found.</div>');
+        return;
+    }
+    let html = '';
+    tables.forEach(t => {
+        const occ = t.is_occupied == 1;
+        const cls = occ ? 'occupied' : 'available';
+        const icon = occ ? 'fa-utensils' : 'fa-chair';
+        const badge = occ ? 'Occupied' : 'Available';
+        const fn = occ ? `viewOccupiedTableOrder(${t.id},'${escJs(t.name)}')` : `selectTable(${t.id},'${escJs(t.name)}')`;
+        html += `<div class="table-card ${cls}" onclick="${fn}">
+            ${occ ? '<div class="tc-occ-dot"><i class="fas fa-user"></i></div>' : ''}
+            <div class="tc-icon"><i class="fas ${icon}"></i></div>
+            <div class="tc-name">${t.name}</div>
+            <span class="tc-badge">${badge}</span>
+        </div>`;
+    });
+    $('#tablesGrid').html(html);
+}
+
+function goBackToTables() { showView('tablesView'); orderItems = []; loadTables(); }
+
+/* ── SELECT TABLE ── */
+function selectTable(id, name) {
+    $('#selectedTableId').val(id); $('#currentOrderId').val(''); $('#isTableOccupied').val('0');
+    $('#orderTableName').text(name);
+    $('#orderStatusPill').removeClass('occupied').addClass('available').text('Available');
+    $('#btnCancelOrder').hide();
+    $('#bsheetCancelBtn').hide();
+    renderOrderItems(); loadCategories(); loadProducts(null);
+    showView('orderView');
+}
+
+function viewOccupiedTableOrder(tableId, tableName) {
+    $.ajax({ url:'getTableOrder.jsp', data:{tableId}, dataType:'json',
+        success: function(data) {
+            if (data.error) { Swal.fire('Error', data.error, 'error'); return; }
+            $('#selectedTableId').val(tableId);
+            $('#orderTableName').text(tableName);
+            $('#orderStatusPill').removeClass('available').addClass('occupied').text('Occupied');
+            $('#currentOrderId').val(data.orderId||'');
+            $('#isTableOccupied').val('1');
+            orderItems = data.items||[];
+            if (data.orderId) { $('#btnCancelOrder').show(); $('#bsheetCancelBtn').show(); }
+            else              { $('#btnCancelOrder').hide(); $('#bsheetCancelBtn').hide(); }
+            selectedCategoryId = null;
+            renderOrderItems(); loadCategories(); loadProducts(null);
+            showView('orderView');
+        },
+        error: function(){ Swal.fire('Error','Could not load table order','error'); }
+    });
+}
+
+/* ── CATEGORIES ── */
+function loadCategories() {
+    $.ajax({ url:'getCategories.jsp', dataType:'json',
+        success: function(cats) {
+            let html = '<button class="cat-btn active" onclick="selectCategory(null,this)"><i class="fas fa-th me-1"></i>All</button>';
+            (cats||[]).forEach(c => { html += `<button class="cat-btn" onclick="selectCategory(${c.id},this)">${c.name}</button>`; });
+            $('#catStrip').html(html);
+        }
+    });
+}
+
+function selectCategory(catId, btn) {
+    selectedCategoryId = catId;
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    loadProducts(catId);
+    $('#prodSearch').val('');
+}
+
+/* ── PRODUCTS ── */
+function loadProducts(catId) {
+    let url = 'getProducts.jsp';
+    if (catId != null) url += '?category_id=' + catId;
+    $('#prodGrid').html('<div class="prod-empty"><i class="fas fa-spinner fa-spin"></i> Loading…</div>');
+    $.ajax({ url, dataType:'json',
+        success: function(products) { allProducts = products||[]; renderProducts(allProducts); },
+        error: function(){ $('#prodGrid').html('<div class="prod-empty"><i class="fas fa-exclamation-circle"></i> Error loading products</div>'); }
+    });
+}
+
+function renderProducts(products) {
+    if (!products || products.length === 0) {
+        $('#prodGrid').html('<div class="prod-empty"><i class="fas fa-box-open"></i><br>No items found</div>');
+        return;
+    }
+    let html = '';
+    products.forEach(p => {
+        const inOrder = orderItems.find(o => o.prodId == p.id);
+        const inCls = inOrder ? 'in-order' : '';
+        const qty = inOrder ? inOrder.qty : 0;
+        html += `<div class="prod-card ${inCls}" id="pc-${p.id}" onclick="addToOrder(${p.id},'${escJs(p.name)}',${p.price},'${escJs(p.code)}')">
+            <div class="pc-qty-badge">${qty > 0 ? qty : ''}</div>
+            <div class="pc-icon"><i class="fas fa-utensils"></i></div>
+            <div class="pc-name">${p.name}</div>
+            <div class="pc-code">${p.code}</div>
+            <div class="pc-price">₹${parseFloat(p.price).toFixed(2)}</div>
+        </div>`;
+    });
+    $('#prodGrid').html(html);
+}
+
+$('#prodSearch').on('input', function() {
+    const q = this.value.toLowerCase().trim();
+    if (!q) { renderProducts(allProducts); return; }
+    renderProducts(allProducts.filter(p => p.name.toLowerCase().includes(q) || (p.code&&p.code.toLowerCase().includes(q))));
+});
+
+/* ── ORDER ── */
+function addToOrder(prodId, prodName, price, code) {
+    let item = orderItems.find(i => i.prodId == prodId);
+    if (item) { item.qty++; item.total = item.qty * item.price; }
+    else { orderItems.push({prodId, prodName, code:code||'', price:parseFloat(price), qty:1, total:parseFloat(price)}); }
+    renderOrderItems(); updateProductCard(prodId);
+}
+
+function updateQty(prodId, change) {
+    let item = orderItems.find(i => i.prodId == prodId);
+    if (!item) return;
+    item.qty += change;
+    if (item.qty <= 0) orderItems = orderItems.filter(i => i.prodId != prodId);
+    else item.total = item.qty * item.price;
+    renderOrderItems(); updateProductCard(prodId);
+}
+
+function removeItem(prodId) {
+    orderItems = orderItems.filter(i => i.prodId != prodId);
+    renderOrderItems(); updateProductCard(prodId);
+}
+
+function updateProductCard(prodId) {
+    const card = document.getElementById('pc-'+prodId);
+    if (!card) return;
+    const item = orderItems.find(i => i.prodId == prodId);
+    const badge = card.querySelector('.pc-qty-badge');
+    if (item) { card.classList.add('in-order'); if(badge){badge.textContent=item.qty;} }
+    else      { card.classList.remove('in-order'); if(badge){badge.textContent='';} }
+}
+
+function buildOrderHTML() {
+    if (orderItems.length === 0) return '<div class="oi-empty"><i class="fas fa-utensils"></i>Add items from the menu</div>';
+    let html = '';
+    orderItems.forEach(item => {
+        html += `<div class="oi-row">
+            <div style="flex:1;min-width:0;">
+                <div class="oi-name">${item.prodName}</div>
+                <div class="oi-price">₹${item.price.toFixed(2)} each</div>
+            </div>
+            <div class="oi-qty-ctrl">
+                <button class="qty-btn minus" onclick="updateQty(${item.prodId},-1)">−</button>
+                <span class="qty-num">${item.qty}</span>
+                <button class="qty-btn plus"  onclick="updateQty(${item.prodId}, 1)">+</button>
+            </div>
+            <div class="oi-total">₹${item.total.toFixed(2)}</div>
+            <button class="oi-del" onclick="removeItem(${item.prodId})" title="Remove"><i class="fas fa-times"></i></button>
+        </div>`;
+    });
+    return html;
+}
+
+function renderOrderItems() {
+    const total = orderItems.reduce((s,i) => s+i.total, 0);
+    const count = orderItems.reduce((s,i) => s+i.qty, 0);
+    const label = count+(count===1?' item':' items');
+
+    // Desktop panel
+    document.getElementById('orderTotal').textContent = total.toFixed(2);
+    document.getElementById('orderCountPill').textContent = label;
+    document.getElementById('btnPlaceOrder').disabled = orderItems.length === 0;
+    document.getElementById('orderItemsList').innerHTML = orderItems.length === 0
+        ? '<div class="oi-empty"><i class="fas fa-utensils"></i>Add items from the menu</div>'
+        : buildOrderHTML();
+
+    // Mobile bar
+    document.getElementById('mobCountPill').textContent = label;
+    document.getElementById('mobTotal').textContent = total.toFixed(2);
+    document.getElementById('mobPlaceBtn').disabled = orderItems.length === 0;
+
+    // Mobile cancel btn
+    const bsheetCancel = document.getElementById('bsheetCancelBtn');
+    const desktopCancel = document.getElementById('btnCancelOrder');
+    const showCancel = document.getElementById('currentOrderId').value !== '';
+    if (bsheetCancel) bsheetCancel.style.display = showCancel ? 'flex' : 'none';
+    if (desktopCancel) desktopCancel.style.display = showCancel ? 'flex' : 'none';
+
+    // Refresh bottom sheet if open
+    if (document.getElementById('bsheetOverlay').classList.contains('open')) {
+        refreshBottomSheet();
+    }
+}
+
+function refreshBottomSheet() {
+    const total = orderItems.reduce((s,i) => s+i.total, 0);
+    document.getElementById('bsheetBody').innerHTML = orderItems.length === 0
+        ? '<div class="oi-empty"><i class="fas fa-utensils"></i>No items yet</div>'
+        : buildOrderHTML();
+    document.getElementById('bsheetTotal').textContent = total.toFixed(2);
+    document.getElementById('bsheetPlaceBtn').disabled = orderItems.length === 0;
+}
+
+function openBottomSheet() {
+    refreshBottomSheet();
+    const overlay = document.getElementById('bsheetOverlay');
+    overlay.style.display = 'flex';
+    requestAnimationFrame(() => overlay.classList.add('open'));
+}
+
+function closeBottomSheet() {
+    const overlay = document.getElementById('bsheetOverlay');
+    overlay.classList.remove('open');
+    setTimeout(() => { overlay.style.display = 'none'; }, 290);
+}
+
+function closeBSheetOnBg(e) {
+    if (e.target === document.getElementById('bsheetOverlay')) closeBottomSheet();
+}
+
+/* ── SAVE / CANCEL ── */
+function saveOrder() {
+    if (orderItems.length === 0) return;
+    $.post('saveOrder.jsp', {tableId:$('#selectedTableId').val(), items:JSON.stringify(orderItems)}, function(resp) {
+        if (resp.trim()==='success') {
+            Swal.fire({icon:'success',title:'Order Placed!',text:'Order has been placed successfully.',confirmButtonColor:'#f5a623'})
+                .then(() => { orderItems=[]; goBackToTables(); });
+        } else { Swal.fire('Error', resp, 'error'); }
+    });
+}
+
+function cancelOrder() {
+    const orderId = $('#currentOrderId').val();
+    if (!orderId) { Swal.fire('Info','No active order to cancel.','info'); return; }
+    Swal.fire({title:'Cancel Order?',text:'This will cancel the current order for this table.',icon:'warning',
+        showCancelButton:true,confirmButtonColor:'#ef4444',cancelButtonColor:'#94a3b8',
+        confirmButtonText:'Yes, Cancel',cancelButtonText:'No'
+    }).then(result => {
+        if (!result.isConfirmed) return;
+        $.post('cancelOrder.jsp', {orderId, tableId:$('#selectedTableId').val()}, function(resp) {
+            if (resp.trim()==='success') {
+                Swal.fire({icon:'success',title:'Cancelled!',text:'Order cancelled.',confirmButtonColor:'#f5a623'})
+                    .then(() => { orderItems=[]; goBackToTables(); });
+            } else { Swal.fire('Error', resp, 'error'); }
+        });
+    });
+}
+</script>
+</body>
+</html>
