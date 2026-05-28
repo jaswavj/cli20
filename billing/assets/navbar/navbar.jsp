@@ -98,6 +98,12 @@ for (int i = 0; i < vecPer.size(); i++) {
       <span>Order List</span>
     </a>
     <% } %>
+    <% if (permissions.contains(13)) { %>
+    <a href="<%=request.getContextPath()%>/attendance/index.jsp" class="sidebar-item">
+      <i class="fas fa-clock"></i>
+      <span>Attendance</span>
+    </a>
+    <% } %>
 <% if (permissions.contains(2)) { %>
     <div class="sidebar-dropdown">
       <a href="#" class="sidebar-item" data-bs-toggle="collapse" data-bs-target="#productMenu">
@@ -197,9 +203,10 @@ for (int i = 0; i < vecPer.size(); i++) {
             <a href="<%=request.getContextPath()%>/reports/salesByDept/page.jsp" class="sidebar-subitem">Sales by <%=head2%></a>
             <a href="<%=request.getContextPath()%>/reports/salesByItem/page.jsp" class="sidebar-subitem">Sales by <%=head3%></a>
             <a href="<%=request.getContextPath()%>/reports/salesByCustomer/page.jsp" class="sidebar-subitem">Sales by Customer</a>
-            <a href="<%=request.getContextPath()%>/reports/attenderSales/page.jsp" class="sidebar-subitem">Sales by Attender</a>
+
             <a href="<%=request.getContextPath()%>/reports/dueCollection/page.jsp" class="sidebar-subitem">Balance Collection</a>
-            <a href="<%=request.getContextPath()%>/reports/dayAccount/page.jsp" class="sidebar-subitem">Day Account</a>
+            <a href="<%=request.getContextPath()%>/attendance/report.jsp" class="sidebar-subitem">Attendance Report</a>
+
           </div>
         </div>
         

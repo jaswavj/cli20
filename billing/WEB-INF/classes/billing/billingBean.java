@@ -6334,5 +6334,165 @@ public void useExchangePoint(int customerId, int billId, double pointsUsed, int 
         if (con != null) try { con.close(); } catch (Exception e) { ; }
     }
 }
+//======================== ATTENDANCE METHODS ========================
+public Map<String, Object> checkAttendance(int userId) throws Exception {
+    Connection con = null;
+    PreparedStatement ps = null;
+    ResultSet rs = null;
+    Map<String, Object> result = new HashMap<>();
+    try {
+        con = util.DBConnectionManager.getConnectionFromPool();
+        String sql = "SELECT in_time, out_time FROM attendance WHERE user_id=? AND entry_date=CURDATE()";
+        ps = con.prepareStatement(sql);
+        ps.setInt(1, userId);
+        rs = ps.executeQuery();
 
+        if (rs.next()) {
+            result.put("hasEntry", true);
+            result.put("inTime", rs.getString("in_time"));
+            result.put("outTime", rs.getString("out_time"));
+        } else {
+            result.put("hasEntry", false);
+        }
+    } finally {
+        if (rs != null) try { rs.close(); } catch (SQLException e) {}
+        if (ps != null) try { ps.close(); } catch (SQLException e) {}
+        if (con != null) try { con.close(); } catch (Exception e) {}
+    }
+    return result;
+}
+
+public Map<String, Object> markAttendance(int userId, String action) throws Exception {
+    Connection con = null;
+    PreparedStatement ps = null;
+    ResultSet rs = null;
+    Map<String, Object> result = new HashMap<>();
+    
+    try {
+        con = util.DBConnectionManager.getConnectionFromPool();
+        con.setAutoCommit(true);
+
+        String sql = "SELECT id, in_time, out_time FROM attendance WHERE user_id=? AND entry_date=CURDATE()";
+        ps = con.prepareStatement(sql);
+        ps.setInt(1, userId);
+        rs = ps.executeQuery();
+
+        if ("in".equals(action)) {
+            if (rs.next()) {
+                result.put("success", false);
+                result.put("message", "Already checked in today");
+            } else {
+                String insertSql = "INSERT INTO attendance (user_id, entry_date, in_time) VALUES (?, CURDATE(), CURTIME())";
+                PreparedStatement insertPs = con.prepareStatement(insertSql);
+                insertPs.setInt(1, userId);
+                insertPs.executeUpdate();
+                insertPs.close();
+
+                String timeSql = "SELECT DATE_FORMAT(in_time, '%H:%i:%s') AS in_time FROM attendance WHERE user_id=? AND entry_date=CURDATE()";
+                PreparedStatement timePs = con.prepareStatement(timeSql);
+                timePs.setInt(1, userId);
+                ResultSet timeRs = timePs.executeQuery();
+                if (timeRs.next()) {
+                    result.put("success", true);
+                    result.put("time", timeRs.getString("in_time"));
+                }
+                timeRs.close();
+                timePs.close();
+            }
+        } else if ("out".equals(action)) {
+            if (rs.next()) {
+                String inTime = rs.getString("in_time");
+                String outTime = rs.getString("out_time");
+
+                if (inTime == null) {
+                    result.put("success", false);
+                    result.put("message", "Must check in first");
+                } else if (outTime != null) {
+                    result.put("success", false);
+                    result.put("message", "Already checked out today");
+                } else {
+                    String updateSql = "UPDATE attendance SET out_time=CURTIME() WHERE user_id=? AND entry_date=CURDATE()";
+                    PreparedStatement updatePs = con.prepareStatement(updateSql);
+                    updatePs.setInt(1, userId);
+                    updatePs.executeUpdate();
+                    updatePs.close();
+
+                    String timeSql = "SELECT DATE_FORMAT(out_time, '%H:%i:%s') AS out_time FROM attendance WHERE user_id=? AND entry_date=CURDATE()";
+                    PreparedStatement timePs = con.prepareStatement(timeSql);
+                    timePs.setInt(1, userId);
+                    ResultSet timeRs = timePs.executeQuery();
+                    if (timeRs.next()) {
+                        result.put("success", true);
+                        result.put("time", timeRs.getString("out_time"));
+                    }
+                    timeRs.close();
+                    timePs.close();
+                }
+            } else {
+                result.put("success", false);
+                result.put("message", "No check-in found for today");
+            }
+        } else {
+            result.put("success", false);
+            result.put("message", "Invalid action");
+        }
+    } finally {
+        if (rs != null) try { rs.close(); } catch (SQLException e) {}
+        if (ps != null) try { ps.close(); } catch (SQLException e) {}
+        if (con != null) try { con.close(); } catch (Exception e) {}
+    }
+    return result;
+}
+
+public Vector getAttendanceReport(String fromDate, String toDate, int userId, boolean isAdmin, String userFilter) throws Exception {
+    Connection con = null;
+    PreparedStatement ps = null;
+    ResultSet rs = null;
+    Vector vec = new Vector();
+    
+    try {
+        con = util.DBConnectionManager.getConnectionFromPool();
+        
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT a.entry_date, a.in_time, a.out_time, u.user_name, a.user_id FROM attendance a ");
+        sql.append("JOIN users u ON u.id = a.user_id ");
+        sql.append("WHERE a.entry_date BETWEEN ? AND ? ");
+        
+        if (isAdmin && userFilter != null && !userFilter.isEmpty()) {
+            sql.append("AND a.user_id = ? ");
+        } else if (!isAdmin) {
+            sql.append("AND a.user_id = ? ");
+        }
+        
+        sql.append("ORDER BY a.entry_date DESC, u.user_name ASC");
+        
+        ps = con.prepareStatement(sql.toString());
+        ps.setString(1, fromDate);
+        ps.setString(2, toDate);
+        
+        int paramIdx = 3;
+        if (isAdmin && userFilter != null && !userFilter.isEmpty()) {
+            ps.setInt(paramIdx++, Integer.parseInt(userFilter));
+        } else if (!isAdmin) {
+            ps.setInt(paramIdx++, userId);
+        }
+        
+        rs = ps.executeQuery();
+        
+        while (rs.next()) {
+            Vector row = new Vector();
+            row.addElement(rs.getDate("entry_date"));
+            row.addElement(rs.getTime("in_time"));
+            row.addElement(rs.getTime("out_time"));
+            row.addElement(rs.getString("user_name"));
+            row.addElement(rs.getInt("user_id"));
+            vec.addElement(row);
+        }
+    } finally {
+        if (rs != null) try { rs.close(); } catch (SQLException e) {}
+        if (ps != null) try { ps.close(); } catch (SQLException e) {}
+        if (con != null) try { con.close(); } catch (Exception e) {}
+    }
+    return vec;
+}
 }
