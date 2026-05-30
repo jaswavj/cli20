@@ -10,7 +10,7 @@
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f2f5; }
 
-        .app-shell { display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
+        .app-shell { display: flex; flex-direction: column; height: 100vh; height: 100dvh; height: 100svh; overflow: hidden; }
         .app-nav { flex-shrink: 0; }
         .view { display: none; flex: 1; min-height: 0; flex-direction: column; overflow: hidden; }
         .view.active { display: flex; }
@@ -127,7 +127,7 @@
                 -webkit-overflow-scrolling: touch;
                 touch-action: pan-y;
                 overscroll-behavior: contain;
-                padding-bottom: 140px;
+                padding-bottom: 420px;
             }
         }
 
@@ -174,7 +174,10 @@
         }
         .mob-order-bar .mob-place-btn:disabled { background:#e2e8f0; color:#94a3b8; cursor:not-allowed; }
         @media(max-width:700px){
-            .mob-order-bar { padding-bottom: max(80px, env(safe-area-inset-bottom)); }
+            .mob-order-bar {
+                padding-top: 10px;
+                padding-bottom: calc(150px + env(safe-area-inset-bottom, 0px));
+            }
         }
 
         /* ── BOTTOM SHEET ── */
@@ -192,6 +195,8 @@
             width: 100%;
             border-radius: 20px 20px 0 0;
             max-height: 85vh;
+            max-height: 85dvh;
+            max-height: 85svh;
             display: flex;
             flex-direction: column;
             transform: translateY(100%);
@@ -231,6 +236,7 @@
         }
         .bsheet-footer {
             padding: 12px 16px;
+            padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px));
             border-top: 2px solid #f1f5f9;
             flex-shrink: 0;
         }
@@ -276,7 +282,7 @@
                 border-radius:0 0 20px 20px;
                 position:fixed;
                 top:env(safe-area-inset-top, 0px); left:0; right:0;
-                max-height:calc(92vh - env(safe-area-inset-top, 0px));
+                max-height:calc(92svh - env(safe-area-inset-top, 0px));
                 width:100%;
             }
         }
@@ -355,7 +361,7 @@
         @media(max-width:700px){
             .bm-foot {
                 border-radius:0 0 20px 20px;
-                padding-bottom:max(14px, env(safe-area-inset-bottom));
+                padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
             }
         }
         .bm-foot-summary { flex:1; }

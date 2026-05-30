@@ -89,7 +89,7 @@ for (int i = 0; i < vecPer.size(); i++) {
   <% if (permissions.contains(1)) { %>
     <a href="<%=request.getContextPath()%>/cafeOrder/order/page.jsp" class="sidebar-item">
       <i class="fas fa-file-invoice"></i>
-      <span>Billing</span>
+      <span>Order</span>
     </a>
     <% } %>
   <% if (permissions.contains(11)) { %>
@@ -121,12 +121,12 @@ for (int i = 0; i < vecPer.size(); i++) {
         <a href="<%=request.getContextPath()%>/product/master/category/category.jsp" class="sidebar-subitem"><%=head1%></a>
         <a href="<%=request.getContextPath()%>/product/master/brands/brands.jsp" class="sidebar-subitem"><%=head2%></a>
         <a href="<%=request.getContextPath()%>/product/master/product/product.jsp" class="sidebar-subitem"><%=head3%></a>
+        <a href="<%=request.getContextPath()%>/product/master/components/page.jsp" class="sidebar-subitem">Product Ingredients</a>
         <hr>
         <a href="<%=request.getContextPath()%>/product/master/productBulkUpdate/page.jsp" class="sidebar-subitem">Change <%=head3%> MRP</a>
         <a href="<%=request.getContextPath()%>/product/master/stock/stock.jsp" class="sidebar-subitem">Stock Management</a>
         <a href="<%=request.getContextPath()%>/product/master/customer/page.jsp" class="sidebar-subitem">Customers</a>
         <a href="<%=request.getContextPath()%>/cafeOrder/tables/page.jsp" class="sidebar-subitem">Cafe Tables</a>
-        <a href="<%=request.getContextPath()%>/product/master/components/page.jsp" class="sidebar-subitem">Product Ingredients</a>
         
       </div>
     </div>
@@ -222,9 +222,7 @@ for (int i = 0; i < vecPer.size(); i++) {
         <a href="<%=request.getContextPath()%>/reports/profitAnalysis/page.jsp" class="sidebar-subitem">
           <i class="fas fa-chart-pie me-2"></i>Profit Analysis Report
         </a>
-         <a href="<%=request.getContextPath()%>/reports/commissionReport/page.jsp" class="sidebar-subitem">
-          <i class="fas fa-percent me-2"></i>Commission Report
-        </a>
+
       </div>
     </div>
     <% } %>
@@ -283,9 +281,8 @@ for (int i = 0; i < vecPer.size(); i++) {
         <a href="<%=request.getContextPath()%>/admin/userCreate/page.jsp" class="sidebar-subitem">Create User</a>
         <a href="<%=request.getContextPath()%>/admin/permission/page.jsp" class="sidebar-subitem">Module Permission</a>
         <a href="<%=request.getContextPath()%>/admin/specialPermission/page.jsp" class="sidebar-subitem">Special Permission</a>
-        <a href="<%=request.getContextPath()%>/admin/attender/page.jsp" class="sidebar-subitem">Attender Management</a>
         <a href="<%=request.getContextPath()%>/admin/changePassword/changePassword.jsp" class="sidebar-subitem">Change Password</a>
-        <a href="<%=request.getContextPath()%>/admin/userDiscount/page.jsp" class="sidebar-subitem">User Discount</a>
+
       </div>
     </div>
     <% } %>
