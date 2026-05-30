@@ -26,15 +26,14 @@ CREATE TABLE `attendance` (
   `entry_date` date NOT NULL,
   `in_time` time DEFAULT NULL,
   `out_time` time DEFAULT NULL,
+  `in_time2` time DEFAULT NULL,
+  `out_time2` time DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 /*Data for the table `attendance` */
-
-insert  into `attendance`(`id`,`user_id`,`entry_date`,`in_time`,`out_time`,`created_at`,`updated_at`) values 
-(1,1,'2026-05-28','22:53:17',NULL,'2026-05-28 22:53:17','2026-05-28 22:53:17');
 
 /*Table structure for table `attender` */
 
