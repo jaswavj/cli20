@@ -33,10 +33,17 @@ String purchaseId = request.getParameter("id");
             padding-bottom: 0;
             font-weight: 500;
         }
+        /* flex-grow child must have min-height:0 to actually shrink */
+        .table-section { min-height: 0; }
+        /* mobile: drop fixed-height and let page scroll */
+        @media (max-width: 768px) {
+            body { height: auto !important; overflow: auto !important; }
+            .page-shell { height: auto !important; }
+        }
     </style>
 </head>
-<body style="height: 100vh; overflow: hidden;">
-    <div class="container-fluid h-100 d-flex flex-column p-0">
+<body style="height: 100vh; height: 100svh; overflow: hidden;">
+    <div class="container-fluid h-100 d-flex flex-column p-0 page-shell">
         <%@ include file="/assets/navbar/navbar.jsp" %>
 
         <%
@@ -52,49 +59,49 @@ String purchaseId = request.getParameter("id");
         <div class="card m-2 flex-shrink-0">
             <div class="card-body p-2">
                 <div class="row g-2">
-                    <div class="col-md-3">
+                    <div class="col-6 col-md-3">
                         <div class="border rounded p-1 bg-light">
                             <label class="form-label-sm d-block">Invoice No</label>
                             <span class="fw-bold"><%= header.elementAt(1) %></span>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-6 col-md-3">
                         <div class="border rounded p-1 bg-light">
                             <label class="form-label-sm d-block">Invoice Date</label>
                             <span class="fw-bold"><%= header.elementAt(2) %></span>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-6 col-md-3">
                         <div class="border rounded p-1 bg-light">
                             <label class="form-label-sm d-block">Supplier</label>
                             <span class="fw-bold"><%= header.elementAt(9) %></span>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-6 col-md-3">
                         <div class="border rounded p-1 bg-light">
                             <label class="form-label-sm d-block">Entry Date</label>
                             <span class="fw-bold"><%= header.elementAt(6) %> <%= header.elementAt(7) %></span>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-6 col-md-3">
                         <div class="border rounded p-1 bg-light">
                             <label class="form-label-sm d-block">Entered By</label>
                             <span class="fw-bold"><%= header.elementAt(8) %></span>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-6 col-md-3">
                         <div class="border rounded p-1 bg-light">
                             <label class="form-label-sm d-block">Total Amount</label>
                             <span class="fw-bold text-primary">₹<%= header.elementAt(3) %></span>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-6 col-md-3">
                         <div class="border rounded p-1 bg-light">
                             <label class="form-label-sm d-block">Paid Amount</label>
                             <span class="fw-bold text-success">₹<%= header.elementAt(4) %></span>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-6 col-md-3">
                         <div class="border rounded p-1 bg-light">
                             <label class="form-label-sm d-block">Balance</label>
                             <span class="fw-bold text-danger">₹<%= header.elementAt(5) %></span>
@@ -105,7 +112,7 @@ String purchaseId = request.getParameter("id");
         </div>
 
         <!-- Middle Section: Table -->
-        <div class="flex-grow-1 overflow-auto px-2">
+        <div class="flex-grow-1 overflow-auto px-2 table-section">
             <table class="table table-bordered table-sm table-hover mb-0">
                 <thead class="table-light">
                     <tr>
@@ -197,7 +204,7 @@ String purchaseId = request.getParameter("id");
                             <i class="fas fa-undo me-1"></i> Purchase Return
                         </a>
                     </div>
-                    <div class="col text-end">
+                    <div class="col-12 col-md text-md-end mt-2 mt-md-0">
                         <span class="me-3 text-muted">Sub Total: <span class="text-dark fw-bold">₹<%= String.format("%.3f", totalAmount) %></span></span>
                         <span class="me-3 text-muted">CGST: <span class="text-dark fw-bold">₹<%= String.format("%.3f", totalCGST) %></span></span>
                         <span class="me-3 text-muted">SGST: <span class="text-dark fw-bold">₹<%= String.format("%.3f", totalSGST) %></span></span>
