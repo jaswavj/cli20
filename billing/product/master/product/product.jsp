@@ -25,6 +25,7 @@ if (userId == null) {
             .card-header .input-group { width: 100% !important; margin-top: 0.5rem; }
             .card-header .d-flex { flex-direction: column; align-items: stretch !important; }
             .card-header h6 { margin-bottom: 0.5rem; }
+            body { padding-bottom: calc(env(safe-area-inset-bottom) + 10rem); }
         }
     </style>
 </head>
