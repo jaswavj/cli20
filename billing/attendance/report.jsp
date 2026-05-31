@@ -81,6 +81,7 @@ if (toDate==null)   toDate   = fromDate;
         .shift-badge { font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; }
         .shift1-color { background:#dbeafe; color:#1d4ed8; }
         .shift2-color { background:#fef9c3; color:#854d0e; }
+        .shift3-color { background:#f3e8ff; color:#7e22ce; }
         .dur-chip { font-size:11px; font-weight:700; background:#fff8f0; color:#f5a623; padding:2px 7px; border-radius:6px; }
         .status-done    { background:#dcfce7; color:#166534; }
         .status-partial { background:#fef9c3; color:#854d0e; }
@@ -115,7 +116,7 @@ if (toDate==null)   toDate   = fromDate;
             <div class="filter-group">
                 <label>User</label>
                 <select name="userId" id="userSelect" style="min-width:160px">
-                    <option value="">â€” All Users â€”</option>
+                    <option value="">All Users </option>
                 </select>
             </div>
             <%}%>
@@ -141,12 +142,15 @@ if (toDate==null)   toDate   = fromDate;
                         <th><span class="shift-badge shift2-color">S2</span> In</th>
                         <th><span class="shift-badge shift2-color">S2</span> Out</th>
                         <th><span class="shift-badge shift2-color">S2</span> Duration</th>
+                        <th><span class="shift-badge shift3-color">S3</span> In</th>
+                        <th><span class="shift-badge shift3-color">S3</span> Out</th>
+                        <th><span class="shift-badge shift3-color">S3</span> Duration</th>
                         <th>Total</th>
                         <th>Status</th>
                     </tr>
                 </thead>
                 <tbody id="rptTbody">
-                    <tr><td colspan="11" class="no-data"><i class="fas fa-spinner fa-spin fa-2x"></i></td></tr>
+                    <tr><td colspan="14" class="no-data"><i class="fas fa-spinner fa-spin fa-2x"></i></td></tr>
                 </tbody>
             </table>
         </div>
@@ -166,42 +170,45 @@ function durMins(inT,outT) {
 
 function loadReport() {
     const params = new URLSearchParams(new FormData(document.getElementById('filterForm')));
-    document.getElementById('rptTbody').innerHTML = '<tr><td colspan="11" class="no-data"><i class="fas fa-spinner fa-spin fa-2x"></i></td></tr>';
+    document.getElementById('rptTbody').innerHTML = '<tr><td colspan="14" class="no-data"><i class="fas fa-spinner fa-spin fa-2x"></i></td></tr>';
     fetch(contextPath+'/attendance/getAttendanceReport.jsp?'+params)
         .then(r=>r.json()).then(renderReport)
-        .catch(()=>{ document.getElementById('rptTbody').innerHTML='<tr><td colspan="11" class="no-data text-danger">Error loading report</td></tr>'; });
+        .catch(()=>{ document.getElementById('rptTbody').innerHTML='<tr><td colspan="14" class="no-data text-danger">Error loading report</td></tr>'; });
 }
 
 function renderReport(data) {
     const tbody = document.getElementById('rptTbody');
-    if(!data||data.length===0){ tbody.innerHTML='<tr><td colspan="11" class="no-data">No records found</td></tr>'; return; }
+    if(!data||data.length===0){ tbody.innerHTML='<tr><td colspan="14" class="no-data">No records found</td></tr>'; return; }
 
     let totalDays=0, completeDays=0, totalMins=0;
     tbody.innerHTML = data.map((row,i)=>{
         totalDays++;
-        const m1=durMins(row.in1,row.out1), m2=durMins(row.in2,row.out2), tot=m1+m2;
+        const m1=durMins(row.in1,row.out1), m2=durMins(row.in2,row.out2), m3=durMins(row.in3,row.out3), tot=m1+m2+m3;
         totalMins+=tot;
-        const hasAll = row.in1&&row.out1&&row.in2&&row.out2;
-        const hasSome= row.in1||row.in2;
+        const hasAll = row.in1&&row.out1&&row.in2&&row.out2&&row.in3&&row.out3;
         if(hasAll) completeDays++;
 
         let statusHtml;
-        if(row.in1&&row.out1&&row.in2&&row.out2) statusHtml='<span class="status-badge status-done">Complete</span>';
-        else if(row.in1&&row.out1)               statusHtml='<span class="status-badge status-partial">S1 Only</span>';
-        else if(row.in1&&!row.out1)              statusHtml='<span class="status-badge status-partial">In Progress</span>';
-        else                                     statusHtml='<span class="status-badge status-absent">Absent</span>';
+        if(row.in1&&row.out1&&row.in2&&row.out2&&row.in3&&row.out3) statusHtml='<span class="status-badge status-done">Complete</span>';
+        else if(row.in1&&row.out1&&row.in2&&row.out2)               statusHtml='<span class="status-badge status-partial">S1+S2 Only</span>';
+        else if(row.in1&&row.out1)                                   statusHtml='<span class="status-badge status-partial">S1 Only</span>';
+        else if(row.in1&&!row.out1)                                  statusHtml='<span class="status-badge status-partial">In Progress</span>';
+        else                                                         statusHtml='<span class="status-badge status-absent">Absent</span>';
 
         return `<tr>
             <td>${i+1}</td>
             ${isAdmin?`<td>${row.userName}</td>`:''}
             <td>${row.date}</td>
-            <td>${row.in1||'<span style="color:#cbd5e1">â€”</span>'}</td>
-            <td>${row.out1||'<span style="color:#cbd5e1">â€”</span>'}</td>
-            <td>${m1>0?'<span class="dur-chip">'+minsToStr(m1)+'</span>':'â€”'}</td>
-            <td>${row.in2||'<span style="color:#cbd5e1">â€”</span>'}</td>
-            <td>${row.out2||'<span style="color:#cbd5e1">â€”</span>'}</td>
-            <td>${m2>0?'<span class="dur-chip">'+minsToStr(m2)+'</span>':'â€”'}</td>
-            <td class="total-dur">${tot>0?minsToStr(tot):'â€”'}</td>
+            <td>${row.in1||'<span style="color:#cbd5e1">—</span>'}</td>
+            <td>${row.out1||'<span style="color:#cbd5e1">—</span>'}</td>
+            <td>${m1>0?'<span class="dur-chip">'+minsToStr(m1)+'</span>':'—'}</td>
+            <td>${row.in2||'<span style="color:#cbd5e1">—</span>'}</td>
+            <td>${row.out2||'<span style="color:#cbd5e1">—</span>'}</td>
+            <td>${m2>0?'<span class="dur-chip">'+minsToStr(m2)+'</span>':'—'}</td>
+            <td>${row.in3||'<span style="color:#cbd5e1">—</span>'}</td>
+            <td>${row.out3||'<span style="color:#cbd5e1">—</span>'}</td>
+            <td>${m3>0?'<span class="dur-chip">'+minsToStr(m3)+'</span>':'—'}</td>
+            <td class="total-dur">${tot>0?minsToStr(tot):'—'}</td>
             <td>${statusHtml}</td>
         </tr>`;
     }).join('');
@@ -234,5 +241,6 @@ if(isAdmin) {
 document.getElementById('filterForm').addEventListener('submit',e=>{ e.preventDefault(); loadReport(); });
 loadReport();
 </script>
+<br><br><br><br><br><br><br>
 </body>
 </html>

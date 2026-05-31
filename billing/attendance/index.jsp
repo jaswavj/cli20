@@ -42,7 +42,8 @@ if (!permissions.contains(10)) { out.print("<script>alert('Access Denied');windo
         .att-status.success { background:#dcfce7; color:#166534; }
         .att-status.danger  { background:#fee2e2; color:#991b1b; }
 
-        .shifts-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+        .shifts-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+        @media(max-width:760px) { .shifts-grid { grid-template-columns:1fr 1fr; } }
         @media(max-width:520px) { .shifts-grid { grid-template-columns:1fr; } }
 
         .shift-card {
@@ -134,7 +135,19 @@ if (!permissions.contains(10)) { out.print("<script>alert('Access Denied');windo
             </div>
             <div class="duration-badge" id="dur2"></div>
         </div>
-    </div>
+        <!-- Shift 3 -->
+        <div class="shift-card locked" id="shift3Card">
+            <div class="shift-title"><span class="shift-dot"></span> Shift 3 — Night</div>
+            <div class="shift-times">
+                <div class="shift-time-box"><div class="lbl">In</div><div class="val empty" id="s3in">—</div></div>
+                <div class="shift-time-box"><div class="lbl">Out</div><div class="val empty" id="s3out">—</div></div>
+            </div>
+            <div class="shift-btns">
+                <button class="shift-btn in-btn"  id="btn_in3"  onclick="mark('in3')"  disabled><i class="fas fa-sign-in-alt"></i> In</button>
+                <button class="shift-btn out-btn" id="btn_out3" onclick="mark('out3')" disabled><i class="fas fa-sign-out-alt"></i> Out</button>
+            </div>
+            <div class="duration-badge" id="dur3"></div>
+        </div>
 </div>
 
 <script>
@@ -155,8 +168,8 @@ function calcDur(inT, outT) {
 }
 
 function applyState(d) {
-    const i1=d.in1||null,o1=d.out1||null,i2=d.in2||null,o2=d.out2||null;
-    [['s1in',i1],['s1out',o1],['s2in',i2],['s2out',o2]].forEach(([id,v])=>{
+    const i1=d.in1||null,o1=d.out1||null,i2=d.in2||null,o2=d.out2||null,i3=d.in3||null,o3=d.out3||null;
+    [['s1in',i1],['s1out',o1],['s2in',i2],['s2out',o2],['s3in',i3],['s3out',o3]].forEach(([id,v])=>{
         const el=document.getElementById(id);
         el.textContent=v||'—'; el.classList.toggle('empty',!v);
     });
@@ -164,25 +177,31 @@ function applyState(d) {
     if(o1) c1.classList.add('done'); else if(i1) c1.classList.add('active');
     const c2=document.getElementById('shift2Card'); c2.classList.remove('active','done','locked');
     if(o2) c2.classList.add('done'); else if(i2) c2.classList.add('active'); else if(!o1) c2.classList.add('locked');
+    const c3=document.getElementById('shift3Card'); c3.classList.remove('active','done','locked');
+    if(o3) c3.classList.add('done'); else if(i3) c3.classList.add('active'); else if(!o2) c3.classList.add('locked');
 
     document.getElementById('btn_in1').disabled  = !!i1;
     document.getElementById('btn_out1').disabled = !i1||!!o1;
     document.getElementById('btn_in2').disabled  = !o1||!!i2;
     document.getElementById('btn_out2').disabled = !i2||!!o2;
+    document.getElementById('btn_in3').disabled  = !o2||!!i3;
+    document.getElementById('btn_out3').disabled = !i3||!!o3;
 
-    const d1=calcDur(i1,o1), d2=calcDur(i2,o2);
+    const d1=calcDur(i1,o1), d2=calcDur(i2,o2), d3=calcDur(i3,o3);
     document.getElementById('dur1').textContent = d1?'⏱ '+d1:'';
     document.getElementById('dur2').textContent = d2?'⏱ '+d2:'';
+    document.getElementById('dur3').textContent = d3?'⏱ '+d3:'';
 
     const st=document.getElementById('attStatus');
     if(!d.hasEntry||!i1)            { st.className='att-status info';    st.innerHTML='<i class="fas fa-play-circle"></i> Ready — click <strong>Shift 1 In</strong> to begin.'; }
     else if(i1&&!o1)                { st.className='att-status warning'; st.innerHTML='<i class="fas fa-sun"></i> Shift 1 in progress since <strong>'+i1+'</strong>'; }
     else if(o1&&!i2)                { st.className='att-status info';    st.innerHTML='<i class="fas fa-coffee"></i> Shift 1 done ('+(d1||'—')+') — start Shift 2 when ready.'; }
     else if(i2&&!o2)                { st.className='att-status warning'; st.innerHTML='<i class="fas fa-moon"></i> Shift 2 in progress since <strong>'+i2+'</strong>'; }
+    else if(o2&&!i3)                { st.className='att-status info';    st.innerHTML='<i class="fas fa-coffee"></i> Shift 2 done ('+(d2||'—')+') — start Shift 3 when ready.'; }
+    else if(i3&&!o3)                { st.className='att-status warning'; st.innerHTML='<i class="fas fa-star-half-alt"></i> Shift 3 in progress since <strong>'+i3+'</strong>'; }
     else {
-        const m1=d1?d1.split('h ').reduce((a,v,i)=>a+(i===0?parseInt(v)*60:parseInt(v)),0):0;
-        const m2=d2?d2.split('h ').reduce((a,v,i)=>a+(i===0?parseInt(v)*60:parseInt(v)),0):0;
-        const tot=Math.floor((m1+m2)/60)+'h '+((m1+m2)%60)+'m';
+        const toMins=s=>s?s.split('h ').reduce((a,v,i)=>a+(i===0?parseInt(v)*60:parseInt(v)),0):0;
+        const tot=Math.floor((toMins(d1)+toMins(d2)+toMins(d3))/60)+'h '+((toMins(d1)+toMins(d2)+toMins(d3))%60)+'m';
         st.className='att-status success'; st.innerHTML='<i class="fas fa-check-circle"></i> All shifts complete! Total: <strong>'+tot+'</strong>';
     }
 }
@@ -193,8 +212,8 @@ function loadStatus() {
 }
 
 function mark(action) {
-    const labels={in1:'Shift 1 In',out1:'Shift 1 Out',in2:'Shift 2 In',out2:'Shift 2 Out'};
-    ['btn_in1','btn_out1','btn_in2','btn_out2'].forEach(id=>document.getElementById(id).disabled=true);
+    const labels={in1:'Shift 1 In',out1:'Shift 1 Out',in2:'Shift 2 In',out2:'Shift 2 Out',in3:'Shift 3 In',out3:'Shift 3 Out'};
+    ['btn_in1','btn_out1','btn_in2','btn_out2','btn_in3','btn_out3'].forEach(id=>document.getElementById(id).disabled=true);
     fetch(contextPath+'/attendance/markAttendance.jsp?action='+action,{method:'POST'})
     .then(r=>r.json()).then(data=>{
         if(data.success){ Swal.fire({icon:'success',title:labels[action],text:'Marked at '+data.time,timer:1400,showConfirmButton:false}); setTimeout(loadStatus,400); }
@@ -204,5 +223,6 @@ function mark(action) {
 
 loadStatus();
 </script>
+
 </body>
 </html>

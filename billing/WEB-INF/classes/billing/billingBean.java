@@ -6343,7 +6343,8 @@ public Vector checkAttendance(int userId) throws Exception {
         con = util.DBConnectionManager.getConnectionFromPool();
         ps = con.prepareStatement(
             "SELECT DATE_FORMAT(in_time,'%H:%i') AS i1, DATE_FORMAT(out_time,'%H:%i') AS o1, " +
-            "DATE_FORMAT(in_time2,'%H:%i') AS i2, DATE_FORMAT(out_time2,'%H:%i') AS o2 " +
+            "DATE_FORMAT(in_time2,'%H:%i') AS i2, DATE_FORMAT(out_time2,'%H:%i') AS o2, " +
+            "DATE_FORMAT(in_time3,'%H:%i') AS i3, DATE_FORMAT(out_time3,'%H:%i') AS o3 " +
             "FROM attendance WHERE user_id=? AND entry_date=CURDATE()");
         ps.setInt(1, userId);
         rs = ps.executeQuery();
@@ -6353,8 +6354,11 @@ public Vector checkAttendance(int userId) throws Exception {
             result.addElement(rs.getString("o1"));
             result.addElement(rs.getString("i2"));
             result.addElement(rs.getString("o2"));
+            result.addElement(rs.getString("i3"));
+            result.addElement(rs.getString("o3"));
         } else {
             result.addElement(Boolean.FALSE);
+            result.addElement(null); result.addElement(null);
             result.addElement(null); result.addElement(null);
             result.addElement(null); result.addElement(null);
         }
@@ -6372,13 +6376,15 @@ public String[] markAttendance(int userId, String action) throws Exception {
     try {
         con = util.DBConnectionManager.getConnectionFromPool();
         ps = con.prepareStatement(
-            "SELECT in_time, out_time, in_time2, out_time2 FROM attendance WHERE user_id=? AND entry_date=CURDATE()");
+            "SELECT in_time, out_time, in_time2, out_time2, in_time3, out_time3 FROM attendance WHERE user_id=? AND entry_date=CURDATE()");
         ps.setInt(1, userId); rs = ps.executeQuery();
         boolean hasRow = rs.next();
         String i1 = hasRow ? rs.getString("in_time")   : null;
         String o1 = hasRow ? rs.getString("out_time")  : null;
         String i2 = hasRow ? rs.getString("in_time2")  : null;
         String o2 = hasRow ? rs.getString("out_time2") : null;
+        String i3 = hasRow ? rs.getString("in_time3")  : null;
+        String o3 = hasRow ? rs.getString("out_time3") : null;
         rs.close(); ps.close();
 
         String sql = null; String timeCol = null;
@@ -6402,6 +6408,16 @@ public String[] markAttendance(int userId, String action) throws Exception {
             if (o2 != null) return new String[]{"false","Shift 2 already ended"};
             sql = "UPDATE attendance SET out_time2=CURTIME() WHERE user_id=? AND entry_date=CURDATE()";
             timeCol = "out_time2";
+        } else if ("in3".equals(action)) {
+            if (o2 == null) return new String[]{"false","Complete Shift 2 first"};
+            if (i3 != null) return new String[]{"false","Shift 3 already started"};
+            sql = "UPDATE attendance SET in_time3=CURTIME() WHERE user_id=? AND entry_date=CURDATE()";
+            timeCol = "in_time3";
+        } else if ("out3".equals(action)) {
+            if (i3 == null) return new String[]{"false","Start Shift 3 first"};
+            if (o3 != null) return new String[]{"false","Shift 3 already ended"};
+            sql = "UPDATE attendance SET out_time3=CURTIME() WHERE user_id=? AND entry_date=CURDATE()";
+            timeCol = "out_time3";
         } else {
             return new String[]{"false","Invalid action"};
         }
@@ -6435,6 +6451,7 @@ public Vector getAttendanceReport(String fromDate, String toDate, int userId, bo
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT a.entry_date, DATE_FORMAT(a.in_time,'%H:%i') AS i1, DATE_FORMAT(a.out_time,'%H:%i') AS o1, ");
         sql.append("DATE_FORMAT(a.in_time2,'%H:%i') AS i2, DATE_FORMAT(a.out_time2,'%H:%i') AS o2, ");
+        sql.append("DATE_FORMAT(a.in_time3,'%H:%i') AS i3, DATE_FORMAT(a.out_time3,'%H:%i') AS o3, ");
         sql.append("u.user_name, a.user_id FROM attendance a ");
         sql.append("JOIN users u ON u.id = a.user_id ");
         sql.append("WHERE a.entry_date BETWEEN ? AND ? ");
@@ -6454,6 +6471,8 @@ public Vector getAttendanceReport(String fromDate, String toDate, int userId, bo
             row.addElement(rs.getString("o1") != null ? rs.getString("o1") : "");
             row.addElement(rs.getString("i2") != null ? rs.getString("i2") : "");
             row.addElement(rs.getString("o2") != null ? rs.getString("o2") : "");
+            row.addElement(rs.getString("i3") != null ? rs.getString("i3") : "");
+            row.addElement(rs.getString("o3") != null ? rs.getString("o3") : "");
             row.addElement(rs.getString("user_name"));
             row.addElement(rs.getInt("user_id"));
             vec.addElement(row);

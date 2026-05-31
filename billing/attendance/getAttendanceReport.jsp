@@ -20,6 +20,7 @@ try {
     sql.append("SELECT a.entry_date, "
         +"DATE_FORMAT(a.in_time,'%H:%i') AS in1, DATE_FORMAT(a.out_time,'%H:%i') AS out1, "
         +"DATE_FORMAT(a.in_time2,'%H:%i') AS in2, DATE_FORMAT(a.out_time2,'%H:%i') AS out2, "
+        +"DATE_FORMAT(a.in_time3,'%H:%i') AS in3, DATE_FORMAT(a.out_time3,'%H:%i') AS out3, "
         +"u.user_name, a.user_id FROM attendance a "
         +"JOIN users u ON u.id=a.user_id "
         +"WHERE a.entry_date BETWEEN ? AND ? ");
@@ -38,12 +39,15 @@ try {
         if(!first) sb.append(","); first=false;
         String i1=rs.getString("in1"); String o1=rs.getString("out1");
         String i2=rs.getString("in2"); String o2=rs.getString("out2");
+        String i3=rs.getString("in3"); String o3=rs.getString("out3");
         sb.append("{"
             +"\"date\":\""+rs.getDate("entry_date")+"\","
             +"\"in1\":"+(i1!=null?"\""+i1+"\"":"null")+","
             +"\"out1\":"+(o1!=null?"\""+o1+"\"":"null")+","
             +"\"in2\":"+(i2!=null?"\""+i2+"\"":"null")+","
             +"\"out2\":"+(o2!=null?"\""+o2+"\"":"null")+","
+            +"\"in3\":"+(i3!=null?"\""+i3+"\"":"null")+","
+            +"\"out3\":"+(o3!=null?"\""+o3+"\"":"null")+","
             +"\"userName\":\""+rs.getString("user_name")+"\","
             +"\"userId\":"+rs.getInt("user_id")
             +"}");
