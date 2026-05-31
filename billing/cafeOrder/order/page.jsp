@@ -486,6 +486,12 @@
         <!-- Body -->
         <div class="bm-body">
 
+            <!-- Inline validation error -->
+            <div id="bmValidationError" style="display:none;margin:0 0 10px;padding:10px 14px;background:#fee2e2;border:1.5px solid #fca5a5;border-radius:8px;color:#b91c1c;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="bmValidationMsg"></span>
+            </div>
+
             <!-- Items -->
             <div class="bm-sec">
                 <div class="bm-sec-title"><i class="fas fa-utensils"></i> Order Items</div>
@@ -952,6 +958,9 @@ function openBillModal() {
     document.getElementById('bmCustId').value   = '0';
     document.getElementById('bmCustPhn').value  = '';
     document.getElementById('bmExtraDisc').value = '0';
+    // Clear any previous validation error
+    var errDiv = document.getElementById('bmValidationError');
+    if (errDiv) { errDiv.style.display = 'none'; document.getElementById('bmCustName').style.borderColor = ''; }
     document.getElementById('bmMode').value = '1';
     document.getElementById('bmType').value = '1';
 
@@ -1179,7 +1188,19 @@ function saveCafeBill() {
         return;
     }
     if (customerName === '-' && balance > 0) {
-        Swal.fire('Error','Please enter customer name for balance (due) payment.','error');
+        var errDiv = document.getElementById('bmValidationError');
+        document.getElementById('bmValidationMsg').textContent = 'Customer name is required for due/balance payment.';
+        errDiv.style.display = 'flex';
+        // Scroll error into view and highlight the field
+        errDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        var nameInp = document.getElementById('bmCustName');
+        nameInp.style.borderColor = '#ef4444';
+        nameInp.focus();
+        nameInp.addEventListener('input', function clearErr() {
+            errDiv.style.display = 'none';
+            nameInp.style.borderColor = '';
+            nameInp.removeEventListener('input', clearErr);
+        });
         return;
     }
 
