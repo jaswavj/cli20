@@ -202,6 +202,6 @@ String type = request.getParameter("type"); // success / danger / warning
             }, 500);
         }
     </script>
-
+<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
 </body>
 </html>

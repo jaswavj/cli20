@@ -216,17 +216,6 @@
     .btbl th:nth-child(14), .btbl td:nth-child(14) { width: 100px; }
     .btbl th:nth-child(15), .btbl td:nth-child(15) { width: 90px;  }
 
-    /* BOTTOM PANEL */
-    .bot-panel {
-        flex-shrink: 0; background: var(--bill-card);
-        border-top: 2px solid var(--bill-border-lt); padding: 7px 14px;
-        box-shadow: 0 -2px 8px rgba(0,0,0,.06);
-    }
-    .bot-inner { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
-    .grp { display: flex; gap: 7px; align-items: flex-end; flex-wrap: wrap; }
-    .grp-pay { flex: 3; }
-    .grp-act { flex: 0 0 auto; }
-
     /* PO / Advance banners */
     .info-banner {
         margin-bottom: 6px; padding: 5px 10px;
@@ -241,24 +230,13 @@
 
     /* Mobile */
     @media (max-width: 768px) {
-        .bw { height: 100svh; }
+        .bw { height: 100svh; height: 100dvh; }
         .top-panel { padding: 5px 8px 7px; }
         .tp-row { gap: 5px; }
-        .tbl-panel { margin: 4px 6px; }
-        .bot-panel { padding: 5px 8px 82px; overflow-y: auto; max-height: 48vh; }
-        .bot-inner { flex-direction: column; gap: 5px; align-items: stretch; }
-        .grp-pay { flex: none; width: 100%; display: grid; grid-template-columns: repeat(2,1fr); gap: 5px; }
-        .grp-act {
-            position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
-            background: var(--bill-card); border-top: 2px solid var(--bill-border-lt);
-            box-shadow: 0 -3px 10px rgba(0,0,0,.12); padding: 6px 8px;
-            display: flex !important; gap: 5px;
-        }
-        .grp-act .bb { flex: 1; justify-content: center; }
+        .tbl-panel { margin: 4px 6px; min-height: 80px; }
     }
     @media (max-width: 480px) {
         .tp-row { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
-        .grp-pay { grid-template-columns: repeat(2,1fr); }
     }
 </style>
 <body onload="Load();loadPOItems()">
@@ -300,6 +278,12 @@
             <div class="fg" style="min-width:150px;">
                 <span class="fg-lbl">Invoice Date</span>
                 <input type="date" class="fg-inp" id="invoiceDate" name="invoiceDate" value="<%= new java.text.SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date()) %>">
+            </div>
+            <div class="fg" style="flex:0 0 auto;align-self:flex-end;">
+                <span class="fg-lbl">Total: <strong id="totalDisplay">0.000</strong></span>
+                <button type="button" class="bb bb-navy" onclick="openPaymentModal()" style="width:100%;">
+                    <i class="fas fa-arrow-right me-1"></i> Next
+                </button>
             </div>
         </div>
     </div>
@@ -343,58 +327,76 @@
       </div>
     </div>
 
-    <!-- BOTTOM PANEL - Payment -->
-    <div class="bot-panel">
-        <% if (mode.equals("from-po") && advancePaid > 0) { %>
-        <div class="success-banner">
-            <i class="fas fa-info-circle me-2"></i>
-            <strong>Advance Paid:</strong> &#8377;<%= String.format("%.3f", advancePaid) %> &nbsp;|&nbsp;
-            <strong>Remaining:</strong> &#8377;<%= String.format("%.3f", advanceBalance) %>
-        </div>
-        <% } %>
-        <div class="bot-inner">
-            <div class="grp grp-pay">
-                <div class="fg" style="flex:1;min-width:140px;">
-                    <span class="fg-lbl">Payment Type</span>
-                    <select class="fg-sel" id="payType" name="payType">
-                        <option value="0">Select Payment Type</option>
-                    </select>
+    <!-- Hidden payment fields (updated by purchase.js) -->
+    <input type="hidden" id="grandTotal" name="grandTotal" value="0.00">
+    <input type="hidden" id="paidAmount" name="paidAmount" value="0.00">
+    <input type="hidden" id="extraDisc" name="extraDisc" value="0.00">
+    <input type="hidden" id="balanceAmount" name="balanceAmount" value="0.00">
+    <!-- Keep as select (display:none) so purchase.js can populate options -->
+    <select id="payType" name="payType" style="display:none;"><option value="0">Select Payment Type</option></select>
+    <select id="bank" name="bank" style="display:none;"><option value="0">Select Mode</option></select>
+
+</div><!-- /bw -->
+
+    <!-- Payment Modal -->
+    <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header py-2" style="background:var(--bill-navy);color:#fff;">
+                    <h6 class="modal-title mb-0" id="paymentModalLabel"><i class="fas fa-credit-card me-2"></i>Payment Details</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="fg" style="flex:1;min-width:130px;">
-                    <span class="fg-lbl">Bank / Mode</span>
-                    <select class="fg-sel" id="bank" name="bank">
-                        <option value="0">Select Mode</option>
-                    </select>
+                <div class="modal-body">
+                    <% if (mode.equals("from-po") && advancePaid > 0) { %>
+                    <div class="success-banner mb-2">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Advance Paid:</strong> &#8377;<%= String.format("%.3f", advancePaid) %> &nbsp;|&nbsp;
+                        <strong>Remaining:</strong> &#8377;<%= String.format("%.3f", advanceBalance) %>
+                    </div>
+                    <% } %>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-bold mb-1" style="font-size:11px;text-transform:uppercase;color:var(--bill-muted);">Total Amount</label>
+                            <input type="number" class="form-control" id="pm_grandTotal" step="0.001" readonly value="0.000" style="font-size:20px;font-weight:700;color:var(--bill-navy);text-align:right;">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold mb-1" style="font-size:11px;text-transform:uppercase;color:var(--bill-muted);">Payment Type</label>
+                            <select class="form-select" id="pm_payType" onchange="applyPmPayTypeRule();">
+                                <option value="0">Select Type</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold mb-1" style="font-size:11px;text-transform:uppercase;color:var(--bill-muted);">Bank / Mode</label>
+                            <select class="form-select" id="pm_bank" onchange="syncPaymentHiddens();">
+                                <option value="0">Select Mode</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold mb-1" style="font-size:11px;text-transform:uppercase;color:var(--bill-muted);">Extra Discount</label>
+                            <input type="number" class="form-control" id="pm_extraDisc" step="0.001" value="0.00" oninput="calcPmBalance();syncPaymentHiddens();">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold mb-1" style="font-size:11px;text-transform:uppercase;color:var(--bill-muted);">Paid Now</label>
+                            <input type="number" class="form-control" id="pm_paidAmount" step="0.001" value="0.00" oninput="calcPmBalance();syncPaymentHiddens();">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold mb-1" style="font-size:11px;text-transform:uppercase;color:var(--bill-muted);">Balance</label>
+                            <input type="number" class="form-control" id="pm_balance" step="0.001" readonly value="0.000" style="background:#f1f5f9;font-weight:700;color:var(--bill-red);">
+                        </div>
+                    </div>
                 </div>
-                <div class="fg" style="flex:1;min-width:120px;">
-                    <span class="fg-lbl">Total Amount</span>
-                    <input type="number" class="fg-inp" id="grandTotal" name="grandTotal" step="0.001" readonly value="0.00">
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Back</button>
+                    <button type="button" class="btn btn-primary px-4" id="pmSaveBtn" onclick="savePurchaseBill()">
+                        <i class="fas fa-save me-1"></i>Save Purchase
+                    </button>
                 </div>
-                <div class="fg" style="flex:1;min-width:120px;">
-                    <span class="fg-lbl">Paid Now</span>
-                    <input type="number" class="fg-inp" id="paidAmount" name="paidAmount" step="0.001" value="0.00">
-                </div>
-                <div class="fg" style="flex:1;min-width:120px;">
-                    <span class="fg-lbl">Extra Discount</span>
-                    <input type="number" class="fg-inp" id="extraDisc" name="extraDisc" step="0.001" value="0.00">
-                </div>
-                <div class="fg" style="flex:1;min-width:110px;">
-                    <span class="fg-lbl">Balance</span>
-                    <input type="number" class="fg-inp" id="balanceAmount" name="balanceAmount" step="0.001" readonly value="0.00">
-                </div>
-            </div>
-            <div class="grp grp-act">
-                <button type="button" class="bb bb-navy" id="saveBtn" onclick="savePurchaseBill()">
-                    <i class="fas fa-save"></i> SAVE
-                </button>
             </div>
         </div>
     </div>
 
-</div><!-- /bw -->
-
     <!-- Purchase History Modal -->
-    <div class="modal fade" id="purchaseHistoryModal" tabindex="-1">
+<div class="modal fade" id="purchaseHistoryModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
@@ -452,6 +454,85 @@
             });
         }
         
+        // Open payment modal — syncs totals from hidden fields
+        function openPaymentModal() {
+            var total = parseFloat($('#grandTotal').val()) || 0;
+            $('#pm_grandTotal').val(total.toFixed(3));
+            $('#totalDisplay').text(total.toFixed(3));
+
+            // Copy payment type options
+            $('#pm_payType').html($('#payType').html());
+            // Always default to Cash (val=1)
+            $('#pm_payType').val('1');
+            applyPmPayTypeRule();
+
+            // Restore previous paid/disc values if any
+            var prevPaid = parseFloat($('#paidAmount').val()) || 0;
+            var prevDisc = parseFloat($('#extraDisc').val()) || 0;
+            $('#pm_paidAmount').val(prevPaid > 0 ? prevPaid.toFixed(3) : '0.00');
+            $('#pm_extraDisc').val(prevDisc > 0 ? prevDisc.toFixed(3) : '0.00');
+            calcPmBalance();
+
+            var modal = new bootstrap.Modal(document.getElementById('paymentModal'));
+            modal.show();
+        }
+
+        // Calculate balance inside payment modal
+        function calcPmBalance() {
+            var total = parseFloat($('#pm_grandTotal').val()) || 0;
+            var disc  = parseFloat($('#pm_extraDisc').val()) || 0;
+            var paid  = parseFloat($('#pm_paidAmount').val()) || 0;
+            var bal   = total - disc - paid;
+            $('#pm_balance').val(bal.toFixed(3));
+            syncPaymentHiddens();
+        }
+
+        // Sync modal values back to hidden fields (purchase.js reads these)
+        function syncPaymentHiddens() {
+            $('#payType').val($('#pm_payType').val());
+            $('#bank').val($('#pm_bank').val());
+            $('#paidAmount').val($('#pm_paidAmount').val());
+            $('#extraDisc').val($('#pm_extraDisc').val());
+            $('#balanceAmount').val($('#pm_balance').val());
+        }
+
+        // Mirror grandTotal updates to totalDisplay
+        $(document).on('change input', '#grandTotal', function() {
+            var v = parseFloat($(this).val()) || 0;
+            $('#totalDisplay').text(v.toFixed(3));
+        });
+
+        // Keep bank dropdown in sync (purchase.js populates #bank)
+        function updatePmBank() {
+            applyPmPayTypeRule();
+        }
+
+        // Apply Cash/Bank rules on pm_payType change
+        function applyPmPayTypeRule() {
+            var ptVal = $('#pm_payType').val();
+            // Sync hidden select so purchase.js updates #bank options
+            $('#payType').val(ptVal).trigger('change');
+
+            if (ptVal === '1' || ptVal === '0') {
+                // Cash or none — disable mode
+                $('#pm_bank').val('0').prop('disabled', true);
+            } else {
+                // Bank/other — enable mode, copy options, auto-select UPI
+                setTimeout(function() {
+                    $('#pm_bank').html($('#bank').html()).prop('disabled', false);
+                    // Auto-select UPI if available
+                    var upiOpt = $('#pm_bank option').filter(function() {
+                        return $(this).text().trim().toLowerCase() === 'upi';
+                    });
+                    if (upiOpt.length) {
+                        $('#pm_bank').val(upiOpt.val());
+                    }
+                    syncPaymentHiddens();
+                }, 100);
+            }
+            syncPaymentHiddens();
+        }
+
         // Fix for table header gradient issue if present
         document.addEventListener("DOMContentLoaded", function() {
             setTimeout(function() {

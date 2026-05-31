@@ -352,5 +352,6 @@ function cancelItem(detailId, purchaseId, prodName) {
     });
 }
 </script>
+<br><br><br><br><br><br><br><br>
 </body>
 </html>
