@@ -6567,4 +6567,282 @@ public Vector getBalanceSummaryReport(String fromDate, String toDate) throws Exc
     }
     return vec;
 }
+
+// ── Day Closer ─────────────────────────────────────────────────────────────
+
+/**
+ * Returns a Vector with one element: a java.util.HashMap<String,Object>
+ * with all day-closer data for the given date, or null if no opening entry exists.
+ * Keys: status, openingBal, cashSale, bankSale, dueCash, dueBank,
+ *       totalSale, purchase, expense, cashInHand, cashInBank,
+ *       closingBal, notes, openDt, closeDt, openUser, closeUser
+ */
+public java.util.HashMap<String,Object> getDayCloserStatus(String date) throws Exception {
+    Connection con = null; PreparedStatement ps = null; ResultSet rs = null;
+    try {
+        con = util.DBConnectionManager.getConnectionFromPool();
+
+        ps = con.prepareStatement(
+            "SELECT dc.opening_balance, dc.closing_balance, dc.notes, " +
+            "dc.opening_bal_datetime, dc.closing_bal_datetime, " +
+            "u1.user_name AS open_user, u2.user_name AS close_user " +
+            "FROM day_closer dc " +
+            "LEFT JOIN users u1 ON u1.id = dc.opening_user_id " +
+            "LEFT JOIN users u2 ON u2.id = dc.closing_user_id " +
+            "WHERE dc.closer_date = ?");
+        ps.setString(1, date);
+        rs = ps.executeQuery();
+
+        String status; double openingBal = 0, closingBal = 0;
+        String notes = "", openDt = "", closeDt = "", openUser = "", closeUser = "";
+        if (rs.next()) {
+            openingBal = rs.getDouble("opening_balance");
+            boolean isClosed = rs.getString("closing_balance") != null;
+            status    = isClosed ? "closed" : "open";
+            closingBal = isClosed ? rs.getDouble("closing_balance") : 0;
+            notes     = rs.getString("notes")                != null ? rs.getString("notes")                : "";
+            openDt    = rs.getString("opening_bal_datetime") != null ? rs.getString("opening_bal_datetime") : "";
+            closeDt   = rs.getString("closing_bal_datetime") != null ? rs.getString("closing_bal_datetime") : "";
+            openUser  = rs.getString("open_user")            != null ? rs.getString("open_user")            : "";
+            closeUser = rs.getString("close_user")           != null ? rs.getString("close_user")           : "";
+        } else {
+            status = "no_entry";
+        }
+        rs.close(); ps.close();
+
+        // Cash + Bank sales
+        ps = con.prepareStatement(
+            "SELECT COALESCE(SUM(bp.cash),0) AS cash_sale, COALESCE(SUM(bp.bank),0) AS bank_sale " +
+            "FROM prod_bill b JOIN prod_bill_payment bp ON bp.bill_id=b.id " +
+            "WHERE b.is_cancelled=0 AND b.date=?");
+        ps.setString(1, date); rs = ps.executeQuery();
+        double cashSale = 0, bankSale = 0;
+        if (rs.next()) { cashSale = rs.getDouble("cash_sale"); bankSale = rs.getDouble("bank_sale"); }
+        rs.close(); ps.close();
+
+        // Due collection
+        ps = con.prepareStatement(
+            "SELECT COALESCE(SUM(CASE WHEN mode=1 THEN paid END),0) AS due_cash, " +
+            "COALESCE(SUM(CASE WHEN mode=2 THEN paid END),0) AS due_bank " +
+            "FROM prod_bill_due_collection WHERE date=?");
+        ps.setString(1, date); rs = ps.executeQuery();
+        double dueCash = 0, dueBank = 0;
+        if (rs.next()) { dueCash = rs.getDouble("due_cash"); dueBank = rs.getDouble("due_bank"); }
+        rs.close(); ps.close();
+
+        // Purchase total (net value, used for day settle record)
+        ps = con.prepareStatement(
+            "SELECT COALESCE(SUM(net),0) FROM prod_purchase WHERE is_cancelled=0 AND is_po=0 AND ent_date=?");
+        ps.setString(1, date); rs = ps.executeQuery();
+        double totalPurchase = 0;
+        if (rs.next()) totalPurchase = rs.getDouble(1);
+        rs.close(); ps.close();
+
+        // Purchase payments (actual cash/bank paid to suppliers)
+        ps = con.prepareStatement(
+            "SELECT COALESCE(SUM(CASE WHEN pay_type=1 THEN paid END),0), " +
+            "COALESCE(SUM(CASE WHEN pay_type=2 THEN paid END),0) " +
+            "FROM prod_purchase_supplier_payment_details WHERE date=?");
+        ps.setString(1, date); rs = ps.executeQuery();
+        double purchasePayCash = 0, purchasePayBank = 0;
+        if (rs.next()) { purchasePayCash = rs.getDouble(1); purchasePayBank = rs.getDouble(2); }
+        rs.close(); ps.close();
+
+        // Expense
+        ps = con.prepareStatement(
+            "SELECT COALESCE(SUM(amount),0) FROM expense_entry WHERE is_active=1 AND DATE(exc_date_time)=?");
+        ps.setString(1, date); rs = ps.executeQuery();
+        double totalExpense = 0;
+        if (rs.next()) totalExpense = rs.getDouble(1);
+        rs.close(); ps.close();
+
+        double totalSale     = cashSale + bankSale;
+        double cashInHand    = openingBal + cashSale + dueCash - totalExpense - purchasePayCash;
+        double cashInBank    = bankSale + dueBank - purchasePayBank;
+
+        java.util.HashMap<String,Object> map = new java.util.HashMap<String,Object>();
+        map.put("status",           status);
+        map.put("openingBal",       openingBal);
+        map.put("cashSale",         cashSale);
+        map.put("bankSale",         bankSale);
+        map.put("dueCash",          dueCash);
+        map.put("dueBank",          dueBank);
+        map.put("totalSale",        totalSale);
+        map.put("purchase",         totalPurchase);
+        map.put("purchasePayCash",  purchasePayCash);
+        map.put("purchasePayBank",  purchasePayBank);
+        map.put("expense",          totalExpense);
+        map.put("cashInHand",       cashInHand);
+        map.put("cashInBank",       cashInBank);
+        map.put("closingBal",       closingBal);
+        map.put("notes",            notes);
+        map.put("openDt",           openDt);
+        map.put("closeDt",          closeDt);
+        map.put("openUser",         openUser);
+        map.put("closeUser",        closeUser);
+        return map;
+    } finally {
+        if (rs  != null) try { rs.close();  } catch (Exception e) {}
+        if (ps  != null) try { ps.close();  } catch (Exception e) {}
+        if (con != null) try { con.close(); } catch (Exception e) {}
+    }
+}
+
+/**
+ * Saves opening balance for a date.
+ * Returns null on success, or an error message string on failure.
+ */
+public String saveDayCloserOpening(String date, double amount, int userId) throws Exception {
+    Connection con = null; PreparedStatement ps = null; ResultSet rs = null;
+    try {
+        con = util.DBConnectionManager.getConnectionFromPool();
+        ps = con.prepareStatement("SELECT id FROM day_closer WHERE closer_date=?");
+        ps.setString(1, date); rs = ps.executeQuery();
+        if (rs.next()) { rs.close(); ps.close(); return "Opening balance already entered for this date"; }
+        rs.close(); ps.close();
+
+        ps = con.prepareStatement(
+            "INSERT INTO day_closer (closer_date, opening_balance, opening_bal_datetime, opening_user_id) " +
+            "VALUES (?, ?, NOW(), ?)");
+        ps.setString(1, date);
+        ps.setDouble(2, amount);
+        ps.setInt(3, userId);
+        ps.executeUpdate();
+        con.commit();
+        return null;
+    } finally {
+        if (rs  != null) try { rs.close();  } catch (Exception e) {}
+        if (ps  != null) try { ps.close();  } catch (Exception e) {}
+        if (con != null) try { con.close(); } catch (Exception e) {}
+    }
+}
+
+/**
+ * Saves closing balance and settles the day.
+ * Returns null on success, or an error message string on failure.
+ */
+public String saveDayCloserClosing(String date, double closingBal, double totalSale,
+                                   double purchase, double expense, String notes, int userId) throws Exception {
+    Connection con = null; PreparedStatement ps = null; ResultSet rs = null;
+    try {
+        con = util.DBConnectionManager.getConnectionFromPool();
+        ps = con.prepareStatement("SELECT id, closing_balance FROM day_closer WHERE closer_date=?");
+        ps.setString(1, date); rs = ps.executeQuery();
+        if (!rs.next()) {
+            // No opening entry — auto-create with 0 balance (back-date settle)
+            rs.close(); ps.close();
+            ps = con.prepareStatement(
+                "INSERT INTO day_closer (closer_date, opening_balance, opening_bal_datetime, opening_user_id) VALUES (?, 0, NOW(), ?)");
+            ps.setString(1, date);
+            ps.setInt(2, userId);
+            ps.executeUpdate();
+            ps.close();
+        } else {
+            boolean alreadyClosed = rs.getString("closing_balance") != null;
+            rs.close(); ps.close();
+            if (alreadyClosed) return "Day already closed for this date";
+        }
+
+        ps = con.prepareStatement(
+            "UPDATE day_closer SET closing_balance=?, total_sale=?, purchase=?, expense=?, notes=?, " +
+            "closing_bal_datetime=NOW(), closing_user_id=? WHERE closer_date=?");
+        ps.setDouble(1, closingBal);
+        ps.setDouble(2, totalSale);
+        ps.setDouble(3, purchase);
+        ps.setDouble(4, expense);
+        ps.setString(5, notes != null ? notes : "");
+        ps.setInt(6, userId);
+        ps.setString(7, date);
+        ps.executeUpdate();
+        con.commit();
+        return null;
+    } finally {
+        if (rs  != null) try { rs.close();  } catch (Exception e) {}
+        if (ps  != null) try { ps.close();  } catch (Exception e) {}
+        if (con != null) try { con.close(); } catch (Exception e) {}
+    }
+}
+
+/**
+ * Aggregated Day Closer summary for a date range.
+ */
+public java.util.HashMap<String,Object> getDayCloserRange(String fromDate, String toDate) throws Exception {
+    Connection con = null; PreparedStatement ps = null; ResultSet rs = null;
+    try {
+        con = util.DBConnectionManager.getConnectionFromPool();
+
+        // Sales
+        ps = con.prepareStatement(
+            "SELECT COALESCE(SUM(bp.cash),0), COALESCE(SUM(bp.bank),0) " +
+            "FROM prod_bill b JOIN prod_bill_payment bp ON bp.bill_id=b.id " +
+            "WHERE b.is_cancelled=0 AND b.date BETWEEN ? AND ?");
+        ps.setString(1, fromDate); ps.setString(2, toDate); rs = ps.executeQuery();
+        double cashSale = 0, bankSale = 0;
+        if (rs.next()) { cashSale = rs.getDouble(1); bankSale = rs.getDouble(2); }
+        rs.close(); ps.close();
+
+        // Due collection
+        ps = con.prepareStatement(
+            "SELECT COALESCE(SUM(CASE WHEN mode=1 THEN paid END),0), " +
+            "COALESCE(SUM(CASE WHEN mode=2 THEN paid END),0) " +
+            "FROM prod_bill_due_collection WHERE date BETWEEN ? AND ?");
+        ps.setString(1, fromDate); ps.setString(2, toDate); rs = ps.executeQuery();
+        double dueCash = 0, dueBank = 0;
+        if (rs.next()) { dueCash = rs.getDouble(1); dueBank = rs.getDouble(2); }
+        rs.close(); ps.close();
+
+        // Purchase payment
+        ps = con.prepareStatement(
+            "SELECT COALESCE(SUM(CASE WHEN pay_type=1 THEN paid END),0), " +
+            "COALESCE(SUM(CASE WHEN pay_type=2 THEN paid END),0) " +
+            "FROM prod_purchase_supplier_payment_details WHERE date BETWEEN ? AND ?");
+        ps.setString(1, fromDate); ps.setString(2, toDate); rs = ps.executeQuery();
+        double purchasePayCash = 0, purchasePayBank = 0;
+        if (rs.next()) { purchasePayCash = rs.getDouble(1); purchasePayBank = rs.getDouble(2); }
+        rs.close(); ps.close();
+
+        // Expense
+        ps = con.prepareStatement(
+            "SELECT COALESCE(SUM(amount),0) FROM expense_entry WHERE is_active=1 AND DATE(exc_date_time) BETWEEN ? AND ?");
+        ps.setString(1, fromDate); ps.setString(2, toDate); rs = ps.executeQuery();
+        double totalExpense = 0;
+        if (rs.next()) totalExpense = rs.getDouble(1);
+        rs.close(); ps.close();
+
+        // Opening balance sum for the range
+        ps = con.prepareStatement(
+            "SELECT COALESCE(SUM(opening_balance),0) FROM day_closer WHERE closer_date BETWEEN ? AND ?");
+        ps.setString(1, fromDate); ps.setString(2, toDate); rs = ps.executeQuery();
+        double totalOpening = 0;
+        if (rs.next()) totalOpening = rs.getDouble(1);
+        rs.close(); ps.close();
+
+        double totalSale     = cashSale + bankSale;
+        double totalDue      = dueCash + dueBank;
+        double totalPurchPay = purchasePayCash + purchasePayBank;
+        double netCashInHand = totalOpening + cashSale + dueCash - totalExpense - purchasePayCash;
+        double netCashInBank = bankSale + dueBank - purchasePayBank;
+
+        java.util.HashMap<String,Object> map = new java.util.HashMap<String,Object>();
+        map.put("cashSale",        cashSale);
+        map.put("bankSale",        bankSale);
+        map.put("totalSale",       totalSale);
+        map.put("dueCash",         dueCash);
+        map.put("dueBank",         dueBank);
+        map.put("totalDue",        totalDue);
+        map.put("purchasePayCash", purchasePayCash);
+        map.put("purchasePayBank", purchasePayBank);
+        map.put("totalPurchPay",   totalPurchPay);
+        map.put("expense",         totalExpense);
+        map.put("totalOpening",    totalOpening);
+        map.put("netCashInHand",   netCashInHand);
+        map.put("netCashInBank",   netCashInBank);
+        return map;
+    } finally {
+        if (rs  != null) try { rs.close();  } catch (Exception e) {}
+        if (ps  != null) try { ps.close();  } catch (Exception e) {}
+        if (con != null) try { con.close(); } catch (Exception e) {}
+    }
+}
+
 }

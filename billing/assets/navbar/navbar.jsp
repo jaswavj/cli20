@@ -47,9 +47,10 @@ for (int i = 0; i < vecPer.size(); i++) {
       <div class="subtitle">POS System</div>
     </div>
   </div>
-  <div class="mobile-nav-user">
+  <div class="mobile-nav-user" onclick="toggleMobileUserMenu()" style="cursor:pointer;position:relative">
     <i class="fa-solid fa-user"></i>
     <span><%=userNameUni%></span>
+    <i class="fa-solid fa-chevron-down" id="mobileUserChevron" style="font-size:.6rem;margin-left:2px;transition:transform .2s"></i>
   </div>
   <button class="mobile-nav-logout" onclick="handleLogout(); return false;" title="Logout">
     <i class="fa-solid fa-arrow-right-from-bracket"></i>
@@ -57,6 +58,15 @@ for (int i = 0; i < vecPer.size(); i++) {
   <button class="mobile-nav-toggle" id="mobileNavToggle" title="Menu">
     <i class="fas fa-bars"></i>
   </button>
+</div>
+<!-- Mobile user dropdown -->
+<div id="mobileUserDropdown" style="display:none;position:fixed;top:56px;left:0;right:0;background:#1c1c2e;z-index:1099;border-bottom:2px solid rgba(201,162,39,.3);box-shadow:0 4px 16px rgba(0,0,0,.4)">
+  <a href="<%=request.getContextPath()%>/admin/changePassword/changePassword.jsp"
+     style="display:flex;align-items:center;gap:12px;padding:14px 20px;color:rgba(255,255,255,.9);text-decoration:none;font-size:.9rem"
+     onmouseover="this.style.background='rgba(255,255,255,.07)'" onmouseout="this.style.background=''">
+    <i class="fa-solid fa-key" style="color:#c9a227;width:18px;text-align:center"></i>
+    Change Password
+  </a>
 </div>
 
 <!-- Sidebar -->
@@ -77,15 +87,51 @@ for (int i = 0; i < vecPer.size(); i++) {
   
   <!-- User Section -->
   <div class="sidebar-user-section">
-    <div class="user-info">
+    <div class="user-info user-info-toggle" onclick="toggleUserMenu()" title="Options" style="cursor:pointer">
       <i class="fa-solid fa-user"></i>
       <span class="user-name"><%=userNameUni%></span>
+      <i class="fa-solid fa-chevron-down" id="userMenuChevron" style="font-size:.65rem;margin-left:4px;transition:transform .2s"></i>
     </div>
     <a href="#" onclick="handleLogout(); return false;" class="sidebar-logout-btn" title="Logout">
       <i class="fa-solid fa-arrow-right-from-bracket"></i>
       <span class="logout-text">Logout</span>
     </a>
   </div>
+  <!-- User dropdown -->
+  <div id="userDropdownMenu" style="display:none;background:rgba(255,255,255,.06);border-bottom:1px solid rgba(201,162,39,.15);padding:4px 0">
+    <a href="<%=request.getContextPath()%>/admin/changePassword/changePassword.jsp"
+       style="display:flex;align-items:center;gap:10px;padding:10px 24px;color:rgba(255,255,255,.85);text-decoration:none;font-size:.85rem;transition:background .2s"
+       onmouseover="this.style.background='rgba(255,255,255,.08)'" onmouseout="this.style.background=''">
+      <i class="fa-solid fa-key" style="color:#c9a227;width:16px;text-align:center"></i>
+      Change Password
+    </a>
+  </div>
+  <script>
+  function toggleUserMenu() {
+    var m = document.getElementById('userDropdownMenu');
+    var c = document.getElementById('userMenuChevron');
+    var open = m.style.display !== 'none';
+    m.style.display = open ? 'none' : 'block';
+    c.style.transform = open ? '' : 'rotate(180deg)';
+  }
+  function toggleMobileUserMenu() {
+    var m = document.getElementById('mobileUserDropdown');
+    var c = document.getElementById('mobileUserChevron');
+    var open = m.style.display !== 'none';
+    m.style.display = open ? 'none' : 'block';
+    c.style.transform = open ? '' : 'rotate(180deg)';
+  }
+  // Close mobile dropdown when tapping outside
+  document.addEventListener('click', function(e) {
+    var menu = document.getElementById('mobileUserDropdown');
+    var trigger = document.querySelector('.mobile-nav-user');
+    if (menu && trigger && !trigger.contains(e.target) && !menu.contains(e.target)) {
+      menu.style.display = 'none';
+      var c = document.getElementById('mobileUserChevron');
+      if (c) c.style.transform = '';
+    }
+  });
+  </script>
   <% if (permissions.contains(1)) { %>
     <a href="<%=request.getContextPath()%>/cafeOrder/order/page.jsp" class="sidebar-item">
       <i class="fas fa-file-invoice"></i>
@@ -105,11 +151,12 @@ for (int i = 0; i < vecPer.size(); i++) {
     </a>
     <% } %>
     <% if (permissions.contains(14)) { %>
-    <a href="<%=request.getContextPath()%>/reports/balanceSummary/page.jsp" class="sidebar-item">
-      <i class="fas fa-scale-balanced"></i>
-      <span>Balance Summary</span>
+    <a href="<%=request.getContextPath()%>/reports/dayCloser/index.jsp" class="sidebar-item">
+      <i class="fas fa-calendar-check"></i>
+      <span>Day Closer</span>
     </a>
     <% } %>
+
 <% if (permissions.contains(2)) { %>
     <div class="sidebar-dropdown">
       <a href="#" class="sidebar-item" data-bs-toggle="collapse" data-bs-target="#productMenu">
@@ -141,10 +188,8 @@ for (int i = 0; i < vecPer.size(); i++) {
       <div class="collapse sidebar-submenu" id="inventoryMenu">
         <a href="<%=request.getContextPath()%>/product/master/supplier/page.jsp" class="sidebar-subitem">Supplier</a>
         <a href="<%=request.getContextPath()%>/product/purchase/page.jsp" class="sidebar-subitem">Purchase Entry</a>
-        <a href="<%=request.getContextPath()%>/product/purchase/purchaseReturn/page.jsp" class="sidebar-subitem">Purchase Return</a>
         <hr>
         <a href="<%=request.getContextPath()%>/product/purchase/report/purchaseRegister/page.jsp" class="sidebar-subitem">Purchase Report</a>
-        <a href="<%=request.getContextPath()%>/product/purchase/purchaseReturn/report.jsp" class="sidebar-subitem">Purchase Return Report</a>
         <a href="<%=request.getContextPath()%>/product/supplierPayment/report/page.jsp" class="sidebar-subitem">Supplier Payment Report</a>
         </div>
     </div>
@@ -184,43 +229,15 @@ for (int i = 0; i < vecPer.size(); i++) {
           <div class="collapse sidebar-submenu" id="collectionReportMenu">
             <a href="<%=request.getContextPath()%>/reports/sales/page.jsp" class="sidebar-subitem">Sales Report</a>
             <a href="<%=request.getContextPath()%>/reports/salesByCate/page.jsp" class="sidebar-subitem">Sales by <%=head1%></a>
-            <a href="<%=request.getContextPath()%>/reports/salesByDept/page.jsp" class="sidebar-subitem">Sales by <%=head2%></a>
             <a href="<%=request.getContextPath()%>/reports/salesByItem/page.jsp" class="sidebar-subitem">Sales by <%=head3%></a>
-            <a href="<%=request.getContextPath()%>/reports/salesByCustomer/page.jsp" class="sidebar-subitem">Sales by Customer</a>
-
             <a href="<%=request.getContextPath()%>/reports/dueCollection/page.jsp" class="sidebar-subitem">Balance Collection</a>
             <a href="<%=request.getContextPath()%>/attendance/report.jsp" class="sidebar-subitem">Attendance Report</a>
+          </div>
+        </div>
 
-          </div>
-        </div>
-        
-        
-        
-        <!-- GST Reports Submenu -->
-        <div class="sidebar-submenu-item">
-          <a href="#" class="sidebar-subitem" data-bs-toggle="collapse" data-bs-target="#gstReportMenu">
-            <i class="fas fa-calculator me-2"></i>GST Reports
-            <i class="fas fa-chevron-down ms-auto"></i>
-          </a>
-          <div class="collapse sidebar-submenu" id="gstReportMenu">
-            
-            <a href="<%=request.getContextPath()%>/reports/GST/GSTSummary/page.jsp" class="sidebar-subitem">Sales Summary</a>
-            <a href="<%=request.getContextPath()%>/reports/GST/billWiseSalesGST/page.jsp" class="sidebar-subitem">Bill Wise Sales GST</a>
-            <a href="<%=request.getContextPath()%>/reports/GST/itemWiseSalesGST/page.jsp" class="sidebar-subitem">Item Wise Sales GST</a>
-            <a href="<%=request.getContextPath()%>/reports/GST/hsnSalesGST/page.jsp" class="sidebar-subitem">HSN Sales GST</a>
-            <a href="<%=request.getContextPath()%>/reports/GST/purchaseGST/page.jsp" class="sidebar-subitem">Purchase GST</a>
-            <a href="<%=request.getContextPath()%>/reports/GST/purchaseGSTSummary/page.jsp" class="sidebar-subitem">Purchase GST Summary</a>
-          </div>
-        </div>
-        
         <!-- Profit & Loss Report -->
         <a href="<%=request.getContextPath()%>/reports/profitLoss/page.jsp" class="sidebar-subitem">
           <i class="fas fa-chart-line me-2"></i>Profit & Loss Report
-        </a>
-        
-        <!-- Profit Analysis Report -->
-        <a href="<%=request.getContextPath()%>/reports/profitAnalysis/page.jsp" class="sidebar-subitem">
-          <i class="fas fa-chart-pie me-2"></i>Profit Analysis Report
         </a>
 
       </div>
@@ -298,12 +315,12 @@ for (int i = 0; i < vecPer.size(); i++) {
         <a href="<%=request.getContextPath()%>/admin/companyDetails/page.jsp" class="sidebar-subitem">Company Details</a>
         <a href="<%=request.getContextPath()%>/admin/editBill/page.jsp" class="sidebar-subitem">Edit Date/Cancel Bill</a>
         <a href="<%=request.getContextPath()%>/admin/changePaymentType/page.jsp" class="sidebar-subitem">Change Payment Type</a>
-        <a href="<%=request.getContextPath()%>/admin/Exchange/page.jsp" class="sidebar-subitem">Exchange</a>
+
         <hr>
         <a href="<%=request.getContextPath()%>/admin/report/billDateChange/page.jsp" class="sidebar-subitem">Bill Date Change Report</a>
         <a href="<%=request.getContextPath()%>/admin/report/cancelBill/page.jsp" class="sidebar-subitem">Cancel Bill Reports</a>        
         <a href="<%=request.getContextPath()%>/admin/report/paymentTypeChange/page.jsp" class="sidebar-subitem">Payment Type Change Report</a>
-        <a href="<%=request.getContextPath()%>/admin/Exchange/report.jsp" class="sidebar-subitem">Exchange &amp; Return Report</a>
+
       </div>
         </div>
     <% } %>
