@@ -386,7 +386,7 @@ function buildDetailFooter(grandTotal, orderId, allDelivered) {
     </div>
     ${isPending ? `<button class="btn-deliver-all" ${allDelivered ? 'disabled' : ''} onclick="markOrderDelivered(${orderId})">
         <i class="fas fa-check-double"></i> Mark All Delivered
-    </button>` : ''}`;
+    </button><br><br><br><br><br><br><br><br><br>` : ''}`;
 }
 
 function closeDetail() {

@@ -409,7 +409,7 @@
                 <div style="grid-column:1/-1;text-align:center;padding:40px;color:#94a3b8;">
                     <i class="fas fa-spinner fa-spin fa-2x"></i><br><br>Loading tables…
                 </div>
-            </div>
+            </div><br><br><br><br><br><br><br><br><br><br>
         </div>
     </div>
 
@@ -1276,5 +1276,6 @@ function saveCafeBill() {
     });
 }
 </script>
+
 </body>
 </html>
