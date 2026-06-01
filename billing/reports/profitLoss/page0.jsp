@@ -64,7 +64,7 @@
 <div class="container-fluid mt-3 mst-page">
     <p class="mb-1 text-muted"><strong>Period:</strong> <%= fromDate %> — <%= toDate %></p>
 
-    <div class="d-flex gap-2 mb-3 no-print">
+    <div class="d-flex flex-wrap gap-2 mb-3 no-print">
         <a href="<%=contextPath%>/reports/profitLoss/page.jsp" class="bb bb-outline"><i class="fa-solid fa-arrow-left me-1"></i>Back</a>
         <button class="bb bb-navy" onclick="printReport()"><i class="fa-solid fa-print me-1"></i>Print</button>
         <button class="bb bb-green" onclick="exportTableToExcel()"><i class="fa-solid fa-file-excel me-1"></i>Export</button>
@@ -74,8 +74,8 @@
     if ("summary".equals(reportType)) {
     %>
     <!-- Summary Report -->
-    <div class="row">
-        <div class="col-md-8">
+    <div class="row g-3">
+        <div class="col-12 col-md-8">
             <div class="table-responsive">
             <table id="profitLossTable" class="table mst-table">
                 <thead>
@@ -130,7 +130,7 @@
             </div>
         </div>
 
-        <div class="col-md-4">
+        <div class="col-12 col-md-4">
             <div class="card mst-card">
                 <div class="card-body p-3" style="background:var(--bill-bg);border-top:3px solid var(--bill-navy);">
                     <h6 class="fw-bold mb-2">Profit/Loss Summary</h6>
@@ -190,17 +190,18 @@
     </div>
     <% } else { %>
 
+    <div class="table-responsive">
     <table id="profitLossTable" class="table mst-table">
         <thead>
             <tr>
                 <th>Product Name</th>
                 <th class="text-end">Qty Sold</th>
-                <th class="text-end">Avg Sale Price (₹)</th>
-                <th class="text-end">Cost Price (₹)</th>
+                <th class="text-end d-none d-md-table-cell">Avg Sale Price (₹)</th>
+                <th class="text-end d-none d-md-table-cell">Cost Price (₹)</th>
                 <th class="text-end">Total Sales (₹)</th>
                 <th class="text-end">Total Cost (₹)</th>
                 <th class="text-end">Profit/Loss (₹)</th>
-                <th class="text-end">Margin (%)</th>
+                <th class="text-end d-none d-sm-table-cell">Margin (%)</th>
             </tr>
         </thead>
         <tbody>
@@ -233,12 +234,12 @@
             <tr class="<%= rowClass %>">
                 <td><strong><%= productName %></strong></td>
                 <td class="text-end"><%= qtySold %></td>
-                <td class="text-end"><%= avgSalePrice %></td>
-                <td class="text-end"><%= costPrice %></td>
+                <td class="text-end d-none d-md-table-cell"><%= avgSalePrice %></td>
+                <td class="text-end d-none d-md-table-cell"><%= costPrice %></td>
                 <td class="text-end"><%= productTotalSales %></td>
                 <td class="text-end"><%= productTotalCost %></td>
                 <td class="text-end"><strong><%= productProfitLoss %></strong></td>
-                <td class="text-end"><strong><%= productProfitMargin %>%</strong></td>
+                <td class="text-end d-none d-sm-table-cell"><strong><%= productProfitMargin %>%</strong></td>
             </tr>
             <%
             }
@@ -248,22 +249,22 @@
             <tr>
                 <th><strong>TOTAL</strong></th>
                 <th class="text-end">-</th>
-                <th class="text-end">-</th>
-                <th class="text-end">-</th>
+                <th class="text-end d-none d-md-table-cell">-</th>
+                <th class="text-end d-none d-md-table-cell">-</th>
                 <th class="text-end"><strong><%= String.format("%.3f", totalProductSales) %></strong></th>
                 <th class="text-end"><strong><%= String.format("%.3f", totalProductCost) %></strong></th>
                 <th class="text-end" style="color:<%= totalProductProfit >= 0 ? "#6ee7b7" : "#fca5a5" %>"><strong><%= String.format("%.3f", totalProductProfit) %></strong></th>
-                <th class="text-end" style="color:<%= totalProductProfit >= 0 ? "#6ee7b7" : "#fca5a5" %>"><strong><%= String.format("%.3f", totalProductSales > 0 ? (totalProductProfit/totalProductSales)*100 : 0) %>%</strong></th>
+                <th class="text-end d-none d-sm-table-cell" style="color:<%= totalProductProfit >= 0 ? "#6ee7b7" : "#fca5a5" %>"><strong><%= String.format("%.3f", totalProductSales > 0 ? (totalProductProfit/totalProductSales)*100 : 0) %>%</strong></th>
             </tr>
         </tfoot>
     </table>
+    </div><!-- /table-responsive -->
 
     <div class="row mt-3">
-        <div class="col-md-6">
+        <div class="col-12 col-md-6">
             <div class="card mst-card">
                 <div class="card-body p-3" style="background:var(--bill-bg);border-top:3px solid var(--bill-navy);">
                     <h6 class="fw-bold mb-2">Product Wise Summary</h6>
-                    </div>
                     <div class="mb-2">
                         <strong>Total Sales:</strong> ₹<%= String.format("%.3f", totalProductSales) %>
                     </div>
@@ -297,6 +298,7 @@
         Comprehensive breakdown including sales, purchases, operating expenses, and net profit/loss.
     </div>
 
+    <div class="table-responsive">
     <table id="profitLossTable" class="table mst-table">
         <thead>
             <tr>
@@ -332,14 +334,16 @@
             </tr>
         </tfoot>
     </table>
-    
+    </div><!-- /table-responsive -->
+
     <!-- Expense Breakdown -->
     <%
     Vector expenseDetails = prod.getExpenseReport(fromDate, toDate, 0);
     if (expenseDetails != null && expenseDetails.size() > 0) {
     %>
     <div class="mt-4">
-        <h5>Operating Expenses Breakdown</h5>
+        <h5 class="fs-6 fs-md-5">Operating Expenses Breakdown</h5>
+        <div class="table-responsive">
         <table class="table mst-table table-sm">
             <thead>
                 <tr>
@@ -391,6 +395,18 @@
 </div>
 
 <style>
+/* ── MOBILE ── */
+@media (max-width: 575.98px) {
+    .mst-page { padding-left: 10px; padding-right: 10px; }
+    .mst-page .card-body { padding: 12px !important; }
+    .mst-page .h4 { font-size: 1.1rem; }
+    .mst-page .h5 { font-size: 1rem; }
+    .mst-page p.mb-1 { font-size: 13px; }
+    .table-responsive { border-radius: 8px; }
+    .mst-table th, .mst-table td { font-size: 12px; padding: 6px 8px; white-space: nowrap; }
+    .bb { font-size: 13px; padding: 6px 12px; }
+    .alert { font-size: 13px; }
+}
 @media print {
     @page { size: portrait; margin: 0.3cm; }
     body * { visibility: hidden; }
@@ -434,6 +450,6 @@ function exportTableToExcel() {
     URL.revokeObjectURL(a.href);
 }
 </script>
-
+<br><br><br><br><br><br><br><br><br>
 </body>
 </html>

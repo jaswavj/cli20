@@ -711,6 +711,7 @@ function openBillForTable(tableId, tableName) {
 
 /* ── SELECT TABLE ── */
 function selectTable(id, name) {
+    orderItems = [];
     $('#selectedTableId').val(id); $('#currentOrderId').val(''); $('#isTableOccupied').val('0');
     $('#orderTableName').text(name);
     $('#orderStatusPill').removeClass('occupied').addClass('available').text('Available');
@@ -963,6 +964,10 @@ function openBillModal() {
     if (errDiv) { errDiv.style.display = 'none'; document.getElementById('bmCustName').style.borderColor = ''; }
     document.getElementById('bmMode').value = '1';
     document.getElementById('bmType').value = '1';
+    // Reset save button in case it was left in loading state
+    var saveBtn = document.getElementById('bmSaveBtn');
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = '<i class="fas fa-save"></i> SAVE BILL';
 
     renderBmItems();
     calcBillTotals();
@@ -1258,7 +1263,7 @@ function saveCafeBill() {
                 icon: 'success', title: 'Bill Saved!',
                 html: 'Bill No: <b>' + r + '</b>',
                 confirmButtonColor: '#f5a623'
-            }).then(function() { orderItems = []; goBackToTables(); });
+            }).then(function() { location.reload(); });
         },
         error: function(xhr) {
             var msg = xhr.status === 401
