@@ -52,9 +52,6 @@ for (int i = 0; i < vecPer.size(); i++) {
     <span><%=userNameUni%></span>
     <i class="fa-solid fa-chevron-down" id="mobileUserChevron" style="font-size:.6rem;margin-left:2px;transition:transform .2s"></i>
   </div>
-  <button class="mobile-nav-logout" onclick="handleLogout(); return false;" title="Logout">
-    <i class="fa-solid fa-arrow-right-from-bracket"></i>
-  </button>
   <button class="mobile-nav-toggle" id="mobileNavToggle" title="Menu">
     <i class="fas fa-bars"></i>
   </button>
@@ -66,6 +63,12 @@ for (int i = 0; i < vecPer.size(); i++) {
      onmouseover="this.style.background='rgba(255,255,255,.07)'" onmouseout="this.style.background=''">
     <i class="fa-solid fa-key" style="color:#c9a227;width:18px;text-align:center"></i>
     Change Password
+  </a>
+  <a href="#" onclick="handleLogout(); return false;"
+     style="display:flex;align-items:center;gap:12px;padding:14px 20px;color:rgba(255,255,255,.9);text-decoration:none;font-size:.9rem;border-top:1px solid rgba(255,255,255,.07)"
+     onmouseover="this.style.background='rgba(255,255,255,.07)'" onmouseout="this.style.background=''">
+    <i class="fa-solid fa-arrow-right-from-bracket" style="color:#c9a227;width:18px;text-align:center"></i>
+    Logout
   </a>
 </div>
 

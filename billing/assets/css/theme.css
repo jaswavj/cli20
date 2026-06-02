@@ -723,12 +723,21 @@ nav.navbar-dark.custom-navbar.fixed-top {
     border-radius: 8px;
     color: #ffffff;
     font-size: 0.85rem;
-    flex-shrink: 0;
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .mobile-nav-user i {
     color: #c9a227;
     font-size: 1rem;
+}
+
+.mobile-nav-user span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
 }
 
 .mobile-nav-logout {
