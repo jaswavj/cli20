@@ -2918,6 +2918,7 @@ public Vector getCategorySalesStats(String fromDate, String toDate) throws Excep
             " LEFT JOIN prod_bill b ON b.id = bd.bill_id AND b.is_cancelled = 0" +
             "   AND b.date BETWEEN ? AND ?" +
             " WHERE c.is_active = 1" +
+            " AND (bd.bill_id IS NULL OR b.id IS NOT NULL)" +
             " GROUP BY c.id, c.name" +
             " ORDER BY total_amount DESC";
 
@@ -3014,6 +3015,7 @@ public Vector getCategoryProductDetails(int categoryId, String fromDate, String 
             " LEFT JOIN prod_bill b ON b.id = bd.bill_id AND b.is_cancelled = 0" +
             "   AND b.date BETWEEN ? AND ?" +
             " WHERE p.category_id = ?" +
+            " AND (bd.bill_id IS NULL OR b.id IS NOT NULL)" +
             " GROUP BY p.id, p.name" +
             " ORDER BY total_amount DESC";
 

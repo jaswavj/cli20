@@ -536,5 +536,6 @@ function escHtml(s) {
 document.getElementById('toDate').addEventListener('keydown', e => { if (e.key === 'Enter') loadReport(); });
 document.getElementById('fromDate').addEventListener('keydown', e => { if (e.key === 'Enter') loadReport(); });
 </script>
+<br><br><br><br><br><br><br><br><br><br><br>
 </body>
 </html>
