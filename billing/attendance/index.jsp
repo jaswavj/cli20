@@ -9,7 +9,7 @@ if (uid == null) { response.sendRedirect(contextPath + "/index.jsp"); return; }
 Vector vecPer = user.getUserPermission(uid);
 Set<Integer> permissions = new HashSet<Integer>();
 for (int i=0;i<vecPer.size();i++) { Vector cat=(Vector)vecPer.get(i); permissions.add(Integer.parseInt(cat.elementAt(0).toString())); }
-if (!permissions.contains(10)) { out.print("<script>alert('Access Denied');window.location='"+contextPath+"/';</script>"); return; }
+if (!permissions.contains(13)) { out.print("<script>alert('Access Denied');window.location='"+contextPath+"/';</script>"); return; }
 %>
 <!DOCTYPE html>
 <html lang="en">
