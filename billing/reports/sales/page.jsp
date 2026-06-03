@@ -91,13 +91,7 @@ Vector productList = prod.getAllProduct();
         </div>
     </form>
 </div>
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-    attachDataUrlHandlers(document);  // for <a data-url>
-    attachAjaxForms(document);        // for <form class="ajax-form">
-});
 
-</script>
 <script>
     document.getElementById("mode").addEventListener("change", function () {
     const mode = this.value;

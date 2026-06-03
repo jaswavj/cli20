@@ -235,12 +235,6 @@ String fromDate = request.getParameter("fromDate");
     body * { visibility: hidden; }
     #printArea, #printArea * { visibility: visible; }
     #printArea { position: absolute; left: 0; top: 0; width: 100%; }
-    #printArea table { width: 100% !important; font-size: 8px !important; }
-    #printArea th, #printArea td { padding: 1px 2px !important; font-size: 8px !important; }
-}
-</style>
-        padding: 0;
-    }
     #printArea .container {
         max-width: 100% !important;
         margin: 0 !important;

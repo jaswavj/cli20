@@ -1525,7 +1525,7 @@ public Vector getDuePaidList(String from, String to, int uid) throws Exception {
         sql.append("FROM prod_bill_due_collection a ");
         sql.append("JOIN prod_bill b ON a.bill_id = b.id ");
         sql.append("JOIN users c ON a.uid = c.id ");
-        sql.append("WHERE a.date BETWEEN ? AND ? b.is_cancelled=0");
+        sql.append("WHERE a.date BETWEEN ? AND ? AND b.is_cancelled=0 ");
 
         if (uid != 0) {
             sql.append("AND a.uid = ? ");

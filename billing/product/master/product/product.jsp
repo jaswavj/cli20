@@ -153,6 +153,9 @@ String type = request.getParameter("type"); // success / warning / danger / info
                                 <button type="submit" id="submitBtn" class="bb bb-primary flex-grow-1">
                                     <i class="fas fa-save me-1" id="submitBtnIcon"></i><span id="submitBtnText">Add <%=head3%></span>
                                 </button>
+                                <button type="button" id="blockBtn" class="bb bb-danger" style="display: none;" onclick="confirmBlock()">
+                                    <i class="fas fa-ban me-1"></i>Block
+                                </button>
                                 <button type="button" id="cancelEditBtn" class="bb bb-outline" style="display: none;" onclick="resetForm()">
                                     <i class="fas fa-times me-1"></i>Cancel
                                 </button>
@@ -529,6 +532,8 @@ String type = request.getParameter("type"); // success / warning / danger / info
         document.getElementById('submitBtn').classList.remove('btn-primary');
         document.getElementById('submitBtn').classList.add('btn-success');
         document.getElementById('cancelEditBtn').style.display = 'inline-block';
+        document.getElementById('blockBtn').style.display = 'inline-block';
+        document.getElementById('blockBtn').dataset.productId = product.productId;
 
         // Update card header
         document.querySelector('.card-header h6').innerHTML = '<i class="fas fa-edit me-2"></i>Edit ' + (product.productName || '');
@@ -555,6 +560,7 @@ String type = request.getParameter("type"); // success / warning / danger / info
         document.getElementById('submitBtn').classList.remove('btn-success');
         document.getElementById('submitBtn').classList.add('btn-primary');
         document.getElementById('cancelEditBtn').style.display = 'none';
+        document.getElementById('blockBtn').style.display = 'none';
 
         // Reset card header
         document.querySelector('.card-header h6').innerHTML = '<i class="fas fa-plus-circle me-2"></i>Add New Product';
@@ -585,6 +591,14 @@ String type = request.getParameter("type"); // success / warning / danger / info
         handleUnitChange(document.getElementById('unitSelect'));
         updateConvertedPriceNotes();
     });
+
+    function confirmBlock() {
+        const productId = document.getElementById('blockBtn').dataset.productId;
+        const productName = document.getElementById('productForm').querySelector('[name="productName"]').value;
+        if (confirm('Block "' + productName + '"? It will no longer appear in billing.')) {
+            window.location.href = contextPath + '/product/master/product/blockProduct.jsp?productId=' + productId;
+        }
+    }
 </script>
 </body>
 </html>
