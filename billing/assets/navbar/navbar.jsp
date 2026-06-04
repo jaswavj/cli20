@@ -148,10 +148,17 @@ for (int i = 0; i < vecPer.size(); i++) {
     </a>
     <% } %>
     <% if (permissions.contains(13)) { %>
-    <a href="<%=request.getContextPath()%>/attendance/index.jsp" class="sidebar-item">
-      <i class="fas fa-clock"></i>
-      <span>Attendance</span>
-    </a>
+    <div class="sidebar-dropdown">
+      <a href="#" class="sidebar-item" data-bs-toggle="collapse" data-bs-target="#attendanceMenu">
+        <i class="fas fa-clock"></i>
+        <span>Attendance</span>
+        <i class="fas fa-chevron-down ms-auto"></i>
+      </a>
+      <div class="collapse sidebar-submenu" id="attendanceMenu">
+        <a href="<%=request.getContextPath()%>/attendance/index.jsp" class="sidebar-subitem">Attendance Entry</a>
+        <a href="<%=request.getContextPath()%>/attendance/report.jsp" class="sidebar-subitem">Attendance Report</a>
+      </div>
+    </div>
     <% } %>
     <% if (permissions.contains(14)) { %>
     <a href="<%=request.getContextPath()%>/reports/dayCloser/index.jsp" class="sidebar-item">
@@ -234,7 +241,6 @@ for (int i = 0; i < vecPer.size(); i++) {
             <a href="<%=request.getContextPath()%>/reports/salesByCate/page.jsp" class="sidebar-subitem">Sales by <%=head1%></a>
             <a href="<%=request.getContextPath()%>/reports/salesByItem/page.jsp" class="sidebar-subitem">Sales by <%=head3%></a>
             <a href="<%=request.getContextPath()%>/reports/dueCollection/page.jsp" class="sidebar-subitem">Balance Collection</a>
-            <a href="<%=request.getContextPath()%>/attendance/report.jsp" class="sidebar-subitem">Attendance Report</a>
           </div>
         </div>
 
@@ -318,6 +324,8 @@ for (int i = 0; i < vecPer.size(); i++) {
         <a href="<%=request.getContextPath()%>/admin/companyDetails/page.jsp" class="sidebar-subitem">Company Details</a>
         <a href="<%=request.getContextPath()%>/admin/editBill/page.jsp" class="sidebar-subitem">Edit Date/Cancel Bill</a>
         <a href="<%=request.getContextPath()%>/admin/changePaymentType/page.jsp" class="sidebar-subitem">Change Payment Type</a>
+        <a href="<%=request.getContextPath()%>/admin/attendanceEdit/page.jsp" class="sidebar-subitem">Attendance Edit</a>
+        <a href="<%=request.getContextPath()%>/admin/attendanceEdit/editReport.jsp" class="sidebar-subitem">Attendance Edit Report</a>
 
         <hr>
         <a href="<%=request.getContextPath()%>/admin/report/billDateChange/page.jsp" class="sidebar-subitem">Bill Date Change Report</a>

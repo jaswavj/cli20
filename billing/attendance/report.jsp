@@ -89,6 +89,57 @@ if (toDate==null)   toDate   = fromDate;
         .status-badge { font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; }
         .total-dur { font-weight:800; color:#1c1c2e; }
         .no-data { text-align:center; padding:40px; color:#94a3b8; }
+
+        /* Edited row indicator */
+        tr.row-edited { background:#fffbeb !important; cursor:pointer; }
+        tr.row-edited:hover { background:#fef3c7 !important; }
+        .edited-icon { color:#f5a623; font-size:11px; margin-left:4px; }
+
+        /* Edit history modal */
+        .eh-modal-overlay {
+            display:none; position:fixed; inset:0;
+            background:rgba(0,0,0,.55); z-index:9999;
+            align-items:center; justify-content:center;
+        }
+        .eh-modal-overlay.open { display:flex; }
+        .eh-modal-box {
+            background:#fff; border-radius:18px; padding:28px;
+            max-width:680px; width:95%; box-shadow:0 20px 60px rgba(0,0,0,.3);
+            max-height:88vh; overflow-y:auto;
+        }
+        .eh-modal-box h5 { font-size:16px; font-weight:800; margin:0 0 5px; color:#1c1c2e; }
+        .eh-modal-meta { font-size:12px; color:#94a3b8; margin-bottom:18px; }
+        .eh-entry {
+            border:1.5px solid #e2e8f0; border-radius:12px; padding:16px;
+            margin-bottom:14px;
+        }
+        .eh-entry-header {
+            display:flex; justify-content:space-between; align-items:flex-start;
+            margin-bottom:12px; flex-wrap:wrap; gap:6px;
+        }
+        .eh-entry-meta { font-size:11px; color:#64748b; }
+        .eh-entry-by { font-size:12px; font-weight:700; color:#1c1c2e; }
+        .eh-remarks {
+            background:#fff8f0; border-left:3px solid #f5a623;
+            border-radius:0 8px 8px 0; padding:7px 12px;
+            font-size:12px; color:#92400e; margin-bottom:12px;
+        }
+        .eh-diff-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+        .eh-diff-card { border-radius:9px; padding:10px 12px; }
+        .eh-diff-card.old { background:#fff1f2; border:1px solid #fecdd3; }
+        .eh-diff-card.new { background:#f0fdf4; border:1px solid #bbf7d0; }
+        .eh-diff-label { font-size:10px; font-weight:800; text-transform:uppercase; margin-bottom:7px; }
+        .eh-diff-card.old .eh-diff-label { color:#dc2626; }
+        .eh-diff-card.new .eh-diff-label { color:#16a34a; }
+        .eh-diff-row { display:flex; justify-content:space-between; font-size:11px; padding:3px 0; border-bottom:1px solid rgba(0,0,0,.05); }
+        .eh-diff-row:last-child { border-bottom:none; }
+        .eh-diff-row .dk { color:#64748b; }
+        .eh-diff-row .dv { font-weight:700; color:#1c1c2e; }
+        .eh-diff-row .dv-empty { color:#cbd5e1; font-weight:400; }
+        .eh-diff-row.changed { background:#fef9c3; border-radius:4px; padding-left:4px; }
+        .eh-modal-close { background:#f1f5f9; color:#475569; border:none; border-radius:9px; padding:9px 22px; font-size:13px; font-weight:700; cursor:pointer; }
+        .eh-modal-close:hover { background:#e2e8f0; }
+        .eh-no-history { text-align:center; padding:28px; color:#94a3b8; }
     </style>
 </head>
 <body>
@@ -195,8 +246,8 @@ function renderReport(data) {
         else if(row.in1&&!row.out1)                                  statusHtml='<span class="status-badge status-partial">In Progress</span>';
         else                                                         statusHtml='<span class="status-badge status-absent">Absent</span>';
 
-        return `<tr>
-            <td>${i+1}</td>
+        return `<tr${row.isEdited ? ` class="row-edited" title="This record was edited — click to view edit history" onclick="showEditHistory('${row.date}',${row.userId},'${row.userName.replace(/'/g,"\\'")}')"`  : ''}>
+            <td>${i+1}${row.isEdited ? '<i class="fas fa-edit edited-icon" title="Edited"></i>' : ''}</td>
             ${isAdmin?`<td>${row.userName}</td>`:''}
             <td>${row.date}</td>
             <td>${row.in1||'<span style="color:#cbd5e1">—</span>'}</td>
@@ -240,7 +291,97 @@ if(isAdmin) {
 
 document.getElementById('filterForm').addEventListener('submit',e=>{ e.preventDefault(); loadReport(); });
 loadReport();
+
+// ---- Edit History Modal ----
+function showEditHistory(date, userId, userName) {
+    const modal = document.getElementById('ehModal');
+    document.getElementById('ehModalTitle').innerHTML =
+        `<i class="fas fa-history me-2" style="color:#f5a623"></i>${userName} — ${date}`;
+    document.getElementById('ehModalMeta').textContent = 'Loading edit history…';
+    document.getElementById('ehModalBody').innerHTML =
+        '<div class="eh-no-history"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
+    modal.classList.add('open');
+
+    fetch(contextPath + '/admin/attendanceEdit/getEditLog.jsp?attDate=' + encodeURIComponent(date) + '&empId=' + encodeURIComponent(userId))
+        .then(r => r.json())
+        .then(logs => {
+            document.getElementById('ehModalMeta').textContent =
+                logs.length + ' edit' + (logs.length !== 1 ? 's' : '') + ' found';
+            if (!logs.length) {
+                document.getElementById('ehModalBody').innerHTML =
+                    '<div class="eh-no-history">No edit history found for this record.</div>';
+                return;
+            }
+            const fields = [
+                ['S1 In','In1'],['S1 Out','Out1'],
+                ['S2 In','In2'],['S2 Out','Out2'],
+                ['S3 In','In3'],['S3 Out','Out3']
+            ];
+            document.getElementById('ehModalBody').innerHTML = logs.map((r, i) => {
+                const oldRows = fields.map(([label, key]) => {
+                    const ov = r['old'+key], nv = r['new'+key];
+                    const changed = ov !== nv;
+                    return `<div class="eh-diff-row${changed?' changed':''}">
+                        <span class="dk">${label}</span>
+                        ${ov ? `<span class="dv">${ov}</span>` : `<span class="dv-empty">—</span>`}
+                    </div>`;
+                }).join('');
+                const newRows = fields.map(([label, key]) => {
+                    const ov = r['old'+key], nv = r['new'+key];
+                    const changed = ov !== nv;
+                    return `<div class="eh-diff-row${changed?' changed':''}">
+                        <span class="dk">${label}</span>
+                        ${nv ? `<span class="dv">${nv}</span>` : `<span class="dv-empty">—</span>`}
+                    </div>`;
+                }).join('');
+                return `<div class="eh-entry">
+                    <div class="eh-entry-header">
+                        <div>
+                            <div class="eh-entry-by"><i class="fas fa-user-edit me-1"></i>Edited by: ${r.editedBy}</div>
+                            <div class="eh-entry-meta">${r.editedAt}</div>
+                        </div>
+                        <span style="font-size:11px;background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:10px;font-weight:700">#${i+1}</span>
+                    </div>
+                    <div class="eh-remarks"><i class="fas fa-comment-alt me-1"></i>${r.remarks||'No remarks'}</div>
+                    <div class="eh-diff-grid">
+                        <div class="eh-diff-card old">
+                            <div class="eh-diff-label"><i class="fas fa-times-circle me-1"></i>Before</div>
+                            ${oldRows}
+                        </div>
+                        <div class="eh-diff-card new">
+                            <div class="eh-diff-label"><i class="fas fa-check-circle me-1"></i>After</div>
+                            ${newRows}
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        })
+        .catch(() => {
+            document.getElementById('ehModalBody').innerHTML =
+                '<div class="eh-no-history text-danger">Error loading edit history.</div>';
+        });
+}
+
+function closeEhModal() {
+    document.getElementById('ehModal').classList.remove('open');
+}
+document.getElementById('ehModal').addEventListener('click', function(e) {
+    if (e.target === this) closeEhModal();
+});
 </script>
+
+<!-- Edit History Modal -->
+<div class="eh-modal-overlay" id="ehModal">
+    <div class="eh-modal-box">
+        <h5 id="ehModalTitle"></h5>
+        <div class="eh-modal-meta" id="ehModalMeta"></div>
+        <div id="ehModalBody"></div>
+        <button class="eh-modal-close" onclick="closeEhModal()">
+            <i class="fas fa-times me-1"></i> Close
+        </button>
+    </div>
+</div>
+
 <br><br><br><br><br><br><br>
 </body>
 </html>

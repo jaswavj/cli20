@@ -21,7 +21,7 @@ try {
         +"DATE_FORMAT(a.in_time,'%H:%i') AS in1, DATE_FORMAT(a.out_time,'%H:%i') AS out1, "
         +"DATE_FORMAT(a.in_time2,'%H:%i') AS in2, DATE_FORMAT(a.out_time2,'%H:%i') AS out2, "
         +"DATE_FORMAT(a.in_time3,'%H:%i') AS in3, DATE_FORMAT(a.out_time3,'%H:%i') AS out3, "
-        +"u.user_name, a.user_id FROM attendance a "
+        +"u.user_name, a.user_id, IFNULL(a.is_edited,0) AS is_edited FROM attendance a "
         +"JOIN users u ON u.id=a.user_id "
         +"WHERE a.entry_date BETWEEN ? AND ? ");
     if (isAdmin && userFilter!=null && !userFilter.isEmpty()) sql.append("AND a.user_id=? ");
@@ -49,7 +49,8 @@ try {
             +"\"in3\":"+(i3!=null?"\""+i3+"\"":"null")+","
             +"\"out3\":"+(o3!=null?"\""+o3+"\"":"null")+","
             +"\"userName\":\""+rs.getString("user_name")+"\","
-            +"\"userId\":"+rs.getInt("user_id")
+            +"\"userId\":"+rs.getInt("user_id")+","
+            +"\"isEdited\":"+rs.getInt("is_edited")
             +"}");
     }
     sb.append("]");

@@ -6485,6 +6485,217 @@ public Vector getAttendanceReport(String fromDate, String toDate, int userId, bo
     return vec;
 }
 
+// ── Attendance Edit ────────────────────────────────────────────────────────
+
+/**
+ * Returns current attendance row for editing.
+ * Index: 0=found(1/0), 1=in1, 2=out1, 3=in2, 4=out2, 5=in3, 6=out3
+ */
+public Vector getAttendanceForEdit(String date, int userId) throws Exception {
+    Connection con = null; PreparedStatement ps = null; ResultSet rs = null;
+    Vector row = new Vector();
+    try {
+        con = util.DBConnectionManager.getConnectionFromPool();
+        ps = con.prepareStatement(
+            "SELECT DATE_FORMAT(in_time,'%H:%i') AS in1, DATE_FORMAT(out_time,'%H:%i') AS out1, " +
+            "DATE_FORMAT(in_time2,'%H:%i') AS in2, DATE_FORMAT(out_time2,'%H:%i') AS out2, " +
+            "DATE_FORMAT(in_time3,'%H:%i') AS in3, DATE_FORMAT(out_time3,'%H:%i') AS out3 " +
+            "FROM attendance WHERE entry_date=? AND user_id=?");
+        ps.setString(1, date);
+        ps.setInt(2, userId);
+        rs = ps.executeQuery();
+        if (rs.next()) {
+            row.addElement("1");
+            row.addElement(rs.getString("in1")  != null ? rs.getString("in1")  : "");
+            row.addElement(rs.getString("out1") != null ? rs.getString("out1") : "");
+            row.addElement(rs.getString("in2")  != null ? rs.getString("in2")  : "");
+            row.addElement(rs.getString("out2") != null ? rs.getString("out2") : "");
+            row.addElement(rs.getString("in3")  != null ? rs.getString("in3")  : "");
+            row.addElement(rs.getString("out3") != null ? rs.getString("out3") : "");
+        } else {
+            row.addElement("0");
+            for (int i = 0; i < 6; i++) row.addElement("");
+        }
+    } finally {
+        if (rs  != null) try { rs.close();  } catch (Exception e) {}
+        if (ps  != null) try { ps.close();  } catch (Exception e) {}
+        if (con != null) try { con.close(); } catch (Exception e) {}
+    }
+    return row;
+}
+
+/**
+ * Saves edited attendance and writes to audit log.
+ * Returns {"true"} on success or {"false", message} on error.
+ * Pass null/empty string for time fields to clear them.
+ */
+public String[] saveAttendanceEdit(String date, int employeeId, int editedBy,
+        String in1, String out1, String in2, String out2, String in3, String out3,
+        String remarks) throws Exception {
+    Connection con = null; PreparedStatement ps = null; ResultSet rs = null;
+    try {
+        con = util.DBConnectionManager.getConnectionFromPool();
+        con.setAutoCommit(false);
+
+        // Normalise empty strings to null
+        if (in1  != null && in1.trim().isEmpty())  in1  = null;
+        if (out1 != null && out1.trim().isEmpty()) out1 = null;
+        if (in2  != null && in2.trim().isEmpty())  in2  = null;
+        if (out2 != null && out2.trim().isEmpty()) out2 = null;
+        if (in3  != null && in3.trim().isEmpty())  in3  = null;
+        if (out3 != null && out3.trim().isEmpty()) out3 = null;
+
+        // Read old values
+        String oIn1 = null, oOut1 = null, oIn2 = null, oOut2 = null, oIn3 = null, oOut3 = null;
+        boolean rowExists = false;
+        ps = con.prepareStatement(
+            "SELECT DATE_FORMAT(in_time,'%H:%i:%s') AS i1, DATE_FORMAT(out_time,'%H:%i:%s') AS o1, " +
+            "DATE_FORMAT(in_time2,'%H:%i:%s') AS i2, DATE_FORMAT(out_time2,'%H:%i:%s') AS o2, " +
+            "DATE_FORMAT(in_time3,'%H:%i:%s') AS i3, DATE_FORMAT(out_time3,'%H:%i:%s') AS o3 " +
+            "FROM attendance WHERE entry_date=? AND user_id=?");
+        ps.setString(1, date); ps.setInt(2, employeeId);
+        rs = ps.executeQuery();
+        if (rs.next()) {
+            rowExists = true;
+            oIn1 = rs.getString("i1"); oOut1 = rs.getString("o1");
+            oIn2 = rs.getString("i2"); oOut2 = rs.getString("o2");
+            oIn3 = rs.getString("i3"); oOut3 = rs.getString("o3");
+        }
+        rs.close(); ps.close();
+
+        // Update or insert attendance row
+        if (rowExists) {
+            ps = con.prepareStatement(
+                "UPDATE attendance SET in_time=?, out_time=?, in_time2=?, out_time2=?, " +
+                "in_time3=?, out_time3=?, is_edited=1 WHERE entry_date=? AND user_id=?");
+            ps.setString(1, in1); ps.setString(2, out1);
+            ps.setString(3, in2); ps.setString(4, out2);
+            ps.setString(5, in3); ps.setString(6, out3);
+            ps.setString(7, date); ps.setInt(8, employeeId);
+        } else {
+            ps = con.prepareStatement(
+                "INSERT INTO attendance (in_time,out_time,in_time2,out_time2,in_time3,out_time3,is_edited,entry_date,user_id) " +
+                "VALUES (?,?,?,?,?,?,1,?,?)");
+            ps.setString(1, in1); ps.setString(2, out1);
+            ps.setString(3, in2); ps.setString(4, out2);
+            ps.setString(5, in3); ps.setString(6, out3);
+            ps.setString(7, date); ps.setInt(8, employeeId);
+        }
+        ps.executeUpdate(); ps.close();
+
+        // Write audit log
+        ps = con.prepareStatement(
+            "INSERT INTO attendance_edit_log " +
+            "(attendance_date,employee_id,edited_by," +
+            "old_in1,old_out1,old_in2,old_out2,old_in3,old_out3," +
+            "new_in1,new_out1,new_in2,new_out2,new_in3,new_out3,remarks) " +
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+        ps.setString(1, date);
+        ps.setInt(2, employeeId);
+        ps.setInt(3, editedBy);
+        ps.setString(4, oIn1);  ps.setString(5, oOut1);
+        ps.setString(6, oIn2);  ps.setString(7, oOut2);
+        ps.setString(8, oIn3);  ps.setString(9, oOut3);
+        ps.setString(10, in1);  ps.setString(11, out1);
+        ps.setString(12, in2);  ps.setString(13, out2);
+        ps.setString(14, in3);  ps.setString(15, out3);
+        ps.setString(16, remarks != null ? remarks.trim() : "");
+        ps.executeUpdate(); ps.close();
+
+        con.commit();
+        return new String[]{"true"};
+    } catch (Exception e) {
+        if (con != null) try { con.rollback(); } catch (Exception ex) {}
+        String msg = e.getMessage(); if (msg == null) msg = "Unknown error";
+        return new String[]{"false", msg};
+    } finally {
+        if (rs  != null) try { rs.close();  } catch (Exception e) {}
+        if (ps  != null) try { ps.close();  } catch (Exception e) {}
+        if (con != null) try { con.setAutoCommit(true); con.close(); } catch (Exception e) {}
+    }
+}
+
+/**
+ * Returns attendance edit log entries.
+ * Mode 1 (attDate != null): log for a specific attendance row (attDate + empId).
+ * Mode 2 (attDate == null): edits made within fromDate–toDate, optionally filtered by userId.
+ *
+ * Each row Vector: 0=attDate, 1=editedAt, 2=empName, 3=editorName, 4=remarks,
+ *   5=oldIn1,6=oldOut1,7=oldIn2,8=oldOut2,9=oldIn3,10=oldOut3,
+ *  11=newIn1,12=newOut1,13=newIn2,14=newOut2,15=newIn3,16=newOut3
+ */
+public Vector getAttendanceEditLog(String attDate, String empId, String fromDate, String toDate, String filterUserId) throws Exception {
+    Connection con = null; PreparedStatement ps = null; ResultSet rs = null;
+    Vector result = new Vector();
+    try {
+        con = util.DBConnectionManager.getConnectionFromPool();
+        StringBuilder sql = new StringBuilder(
+            "SELECT l.attendance_date, l.edited_at, " +
+            "DATE_FORMAT(l.old_in1,'%H:%i') AS oi1, DATE_FORMAT(l.old_out1,'%H:%i') AS oo1, " +
+            "DATE_FORMAT(l.old_in2,'%H:%i') AS oi2, DATE_FORMAT(l.old_out2,'%H:%i') AS oo2, " +
+            "DATE_FORMAT(l.old_in3,'%H:%i') AS oi3, DATE_FORMAT(l.old_out3,'%H:%i') AS oo3, " +
+            "DATE_FORMAT(l.new_in1,'%H:%i') AS ni1, DATE_FORMAT(l.new_out1,'%H:%i') AS no1, " +
+            "DATE_FORMAT(l.new_in2,'%H:%i') AS ni2, DATE_FORMAT(l.new_out2,'%H:%i') AS no2, " +
+            "DATE_FORMAT(l.new_in3,'%H:%i') AS ni3, DATE_FORMAT(l.new_out3,'%H:%i') AS no3, " +
+            "l.remarks, emp.user_name AS emp_name, editor.user_name AS editor_name " +
+            "FROM attendance_edit_log l " +
+            "JOIN users emp ON emp.id=l.employee_id " +
+            "JOIN users editor ON editor.id=l.edited_by WHERE ");
+
+        List<Object> params = new ArrayList<Object>();
+
+        if (attDate != null && !attDate.isEmpty() && empId != null && !empId.isEmpty()) {
+            sql.append("l.attendance_date=? AND l.employee_id=? ORDER BY l.edited_at DESC");
+            params.add(attDate);
+            params.add(Integer.parseInt(empId));
+        } else {
+            if (fromDate == null || fromDate.isEmpty()) fromDate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+            if (toDate   == null || toDate.isEmpty())   toDate   = fromDate;
+            sql.append("DATE(l.edited_at) BETWEEN ? AND ? ");
+            params.add(fromDate); params.add(toDate);
+            if (filterUserId != null && !filterUserId.isEmpty()) {
+                sql.append("AND l.employee_id=? ");
+                params.add(Integer.parseInt(filterUserId));
+            }
+            sql.append("ORDER BY l.edited_at DESC");
+        }
+
+        ps = con.prepareStatement(sql.toString());
+        for (int i = 0; i < params.size(); i++) {
+            Object p = params.get(i);
+            if (p instanceof Integer) ps.setInt(i + 1, (Integer) p);
+            else ps.setString(i + 1, (String) p);
+        }
+        rs = ps.executeQuery();
+        while (rs.next()) {
+            Vector row = new Vector();
+            row.addElement(rs.getDate("attendance_date") != null ? rs.getDate("attendance_date").toString() : "");
+            row.addElement(rs.getTimestamp("edited_at")  != null ? rs.getTimestamp("edited_at").toString()  : "");
+            row.addElement(rs.getString("emp_name")    != null ? rs.getString("emp_name")    : "");
+            row.addElement(rs.getString("editor_name") != null ? rs.getString("editor_name") : "");
+            row.addElement(rs.getString("remarks")     != null ? rs.getString("remarks")     : "");
+            row.addElement(rs.getString("oi1")  != null ? rs.getString("oi1")  : "");
+            row.addElement(rs.getString("oo1")  != null ? rs.getString("oo1")  : "");
+            row.addElement(rs.getString("oi2")  != null ? rs.getString("oi2")  : "");
+            row.addElement(rs.getString("oo2")  != null ? rs.getString("oo2")  : "");
+            row.addElement(rs.getString("oi3")  != null ? rs.getString("oi3")  : "");
+            row.addElement(rs.getString("oo3")  != null ? rs.getString("oo3")  : "");
+            row.addElement(rs.getString("ni1")  != null ? rs.getString("ni1")  : "");
+            row.addElement(rs.getString("no1")  != null ? rs.getString("no1")  : "");
+            row.addElement(rs.getString("ni2")  != null ? rs.getString("ni2")  : "");
+            row.addElement(rs.getString("no2")  != null ? rs.getString("no2")  : "");
+            row.addElement(rs.getString("ni3")  != null ? rs.getString("ni3")  : "");
+            row.addElement(rs.getString("no3")  != null ? rs.getString("no3")  : "");
+            result.addElement(row);
+        }
+    } finally {
+        if (rs  != null) try { rs.close();  } catch (Exception e) {}
+        if (ps  != null) try { ps.close();  } catch (Exception e) {}
+        if (con != null) try { con.close(); } catch (Exception e) {}
+    }
+    return result;
+}
+
 // ── Balance Summary Report ─────────────────────────────────────────────────
 
 public double getBalanceSummaryOpeningBalance(String fromDate) throws Exception {
