@@ -7056,4 +7056,204 @@ public java.util.HashMap<String,Object> getDayCloserRange(String fromDate, Strin
     }
 }
 
+// ============ INCENTIVE MANAGEMENT METHODS ============
+
+/**
+ * Save incentive entry
+ * @param userId - User ID who receives the incentive
+ * @param amount - Incentive amount
+ * @param reason - Reason for incentive
+ * @param notes - Additional notes (can be null)
+ * @param entryDate - Date of incentive entry
+ * @param createdBy - User ID who created the entry
+ * @return boolean - true if saved successfully
+ */
+public boolean saveIncentive(int userId, double amount, String reason, String notes, String entryDate, int createdBy) throws Exception {
+    Connection con = null;
+    PreparedStatement ps = null;
+    try {
+        con = util.DBConnectionManager.getConnectionFromPool();
+        con.setAutoCommit(false);
+        
+        String sql = "INSERT INTO incentive (user_id, amount, reason, notes, entry_date, created_by) " +
+                     "VALUES (?, ?, ?, ?, ?, ?)";
+        ps = con.prepareStatement(sql);
+        ps.setInt(1, userId);
+        ps.setDouble(2, amount);
+        ps.setString(3, reason);
+        ps.setString(4, notes);
+        ps.setString(5, entryDate);
+        ps.setInt(6, createdBy);
+        
+        int result = ps.executeUpdate();
+        if (result > 0) {
+            con.commit();
+            return true;
+        }
+
+        con.rollback();
+        return false;
+    } catch (Exception e) {
+        if (con != null) {
+            try { con.rollback(); } catch (Exception ex) {}
+        }
+        throw e;
+        
+    } finally {
+        if (ps != null) try { ps.close(); } catch (Exception e) {}
+        if (con != null) {
+            try { con.setAutoCommit(true); } catch (Exception e) {}
+            try { con.close(); } catch (Exception e) {}
+        }
+    }
+}
+
+/**
+ * Get incentive report data
+ * @param fromDate - Start date
+ * @param toDate - End date
+ * @param userId - User ID filter (null or "all" for all users)
+ * @return Vector of incentive records
+ */
+public Vector getIncentiveReport(String fromDate, String toDate, String userId) throws Exception {
+    Connection con = null;
+    PreparedStatement ps = null;
+    ResultSet rs = null;
+    try {
+        con = util.DBConnectionManager.getConnectionFromPool();
+        Vector result = new Vector();
+        
+        String sql = "SELECT i.id, i.user_id, u.user_name, i.amount, i.reason, i.notes, " +
+                     "i.entry_date, i.created_at, i.created_by, cu.user_name as created_by_name " +
+                     "FROM incentive i " +
+                     "JOIN users u ON i.user_id = u.id " +
+                     "LEFT JOIN users cu ON i.created_by = cu.id " +
+                     "WHERE i.entry_date BETWEEN ? AND ?";
+        
+        if (userId != null && !userId.trim().isEmpty() && !userId.equals("all")) {
+            sql += " AND i.user_id = ?";
+        }
+        
+        sql += " ORDER BY i.entry_date DESC, i.created_at DESC";
+        
+        ps = con.prepareStatement(sql);
+        ps.setString(1, fromDate);
+        ps.setString(2, toDate);
+        
+        if (userId != null && !userId.trim().isEmpty() && !userId.equals("all")) {
+            ps.setInt(3, Integer.parseInt(userId));
+        }
+        
+        rs = ps.executeQuery();
+        
+        while (rs.next()) {
+            Vector row = new Vector();
+            row.addElement(rs.getInt("id"));
+            row.addElement(rs.getInt("user_id"));
+            row.addElement(rs.getString("user_name"));
+            row.addElement(rs.getDouble("amount"));
+            row.addElement(rs.getString("reason"));
+            row.addElement(rs.getString("notes") != null ? rs.getString("notes") : "");
+            row.addElement(rs.getDate("entry_date"));
+            row.addElement(rs.getTimestamp("created_at"));
+            row.addElement(rs.getInt("created_by"));
+            row.addElement(rs.getString("created_by_name") != null ? rs.getString("created_by_name") : "");
+            result.addElement(row);
+        }
+        
+        return result;
+        
+    } finally {
+        if (rs != null) try { rs.close(); } catch (Exception e) {}
+        if (ps != null) try { ps.close(); } catch (Exception e) {}
+        if (con != null) try { con.close(); } catch (Exception e) {}
+    }
+}
+
+/**
+ * Get total incentive amount for a specific period
+ * @param fromDate - Start date
+ * @param toDate - End date
+ * @param userId - User ID filter (null or "all" for all users)
+ * @return double - Total incentive amount
+ */
+public double getIncentiveTotal(String fromDate, String toDate, String userId) throws Exception {
+    Connection con = null;
+    PreparedStatement ps = null;
+    ResultSet rs = null;
+    try {
+        con = util.DBConnectionManager.getConnectionFromPool();
+        
+        String sql = "SELECT COALESCE(SUM(amount), 0) as total FROM incentive " +
+                     "WHERE entry_date BETWEEN ? AND ?";
+        
+        if (userId != null && !userId.trim().isEmpty() && !userId.equals("all")) {
+            sql += " AND user_id = ?";
+        }
+        
+        ps = con.prepareStatement(sql);
+        ps.setString(1, fromDate);
+        ps.setString(2, toDate);
+        
+        if (userId != null && !userId.trim().isEmpty() && !userId.equals("all")) {
+            ps.setInt(3, Integer.parseInt(userId));
+        }
+        
+        rs = ps.executeQuery();
+        
+        if (rs.next()) {
+            return rs.getDouble("total");
+        }
+        return 0;
+        
+    } finally {
+        if (rs != null) try { rs.close(); } catch (Exception e) {}
+        if (ps != null) try { ps.close(); } catch (Exception e) {}
+        if (con != null) try { con.close(); } catch (Exception e) {}
+    }
+}
+
+/**
+ * Get total incentive count for a specific period
+ * @param fromDate - Start date
+ * @param toDate - End date
+ * @param userId - User ID filter (null or "all" for all users)
+ * @return int - Total count of incentive records
+ */
+public int getIncentiveCount(String fromDate, String toDate, String userId) throws Exception {
+    Connection con = null;
+    PreparedStatement ps = null;
+    ResultSet rs = null;
+    try {
+        con = util.DBConnectionManager.getConnectionFromPool();
+        
+        String sql = "SELECT COUNT(*) as cnt FROM incentive " +
+                     "WHERE entry_date BETWEEN ? AND ?";
+        
+        if (userId != null && !userId.trim().isEmpty() && !userId.equals("all")) {
+            sql += " AND user_id = ?";
+        }
+        
+        ps = con.prepareStatement(sql);
+        ps.setString(1, fromDate);
+        ps.setString(2, toDate);
+        
+        if (userId != null && !userId.trim().isEmpty() && !userId.equals("all")) {
+            ps.setInt(3, Integer.parseInt(userId));
+        }
+        
+        rs = ps.executeQuery();
+        
+        if (rs.next()) {
+            return rs.getInt("cnt");
+        }
+        return 0;
+        
+    } finally {
+        if (rs != null) try { rs.close(); } catch (Exception e) {}
+        if (ps != null) try { ps.close(); } catch (Exception e) {}
+        if (con != null) try { con.close(); } catch (Exception e) {}
+    }
+}
+
 }

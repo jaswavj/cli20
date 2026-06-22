@@ -157,6 +157,7 @@ for (int i = 0; i < vecPer.size(); i++) {
       <div class="collapse sidebar-submenu" id="attendanceMenu">
         <a href="<%=request.getContextPath()%>/attendance/index.jsp" class="sidebar-subitem">Attendance Entry</a>
         <a href="<%=request.getContextPath()%>/attendance/report.jsp" class="sidebar-subitem">Attendance Report</a>
+        <a href="<%=request.getContextPath()%>/attendance/incentiveReport.jsp" class="sidebar-subitem"><i class="fas fa-trophy me-1"></i>Incentive Report</a>
       </div>
     </div>
     <% } %>
@@ -326,6 +327,7 @@ for (int i = 0; i < vecPer.size(); i++) {
         <a href="<%=request.getContextPath()%>/admin/changePaymentType/page.jsp" class="sidebar-subitem">Change Payment Type</a>
         <a href="<%=request.getContextPath()%>/admin/attendanceEdit/page.jsp" class="sidebar-subitem">Attendance Edit</a>
         <a href="<%=request.getContextPath()%>/admin/attendanceEdit/editReport.jsp" class="sidebar-subitem">Attendance Edit Report</a>
+        <a href="<%=request.getContextPath()%>/admin/incentive/page.jsp" class="sidebar-subitem"><i class="fas fa-trophy me-1"></i>Incentive Entry</a>
 
         <hr>
         <a href="<%=request.getContextPath()%>/admin/report/billDateChange/page.jsp" class="sidebar-subitem">Bill Date Change Report</a>
