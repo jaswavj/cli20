@@ -383,6 +383,10 @@
                             <label class="form-label fw-bold mb-1" style="font-size:11px;text-transform:uppercase;color:var(--bill-muted);">Balance</label>
                             <input type="number" class="form-control" id="pm_balance" step="0.001" readonly value="0.000" style="background:#f1f5f9;font-weight:700;color:var(--bill-red);">
                         </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold mb-1" style="font-size:11px;text-transform:uppercase;color:var(--bill-muted);">Notes</label>
+                            <textarea class="form-control" id="pm_notes" name="pm_notes" rows="3" placeholder="Notes"></textarea>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer py-2">

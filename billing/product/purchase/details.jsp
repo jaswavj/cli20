@@ -1,5 +1,5 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"%>
-<%@ page import="java.util.*" %>
+<%@ page import="java.util.*, java.sql.*" %>
 <jsp:useBean id="ph" class="product.productBean" />
 
 <%
@@ -150,6 +150,7 @@ if(Status == 4)
 		String prodArr	= request.getParameter("prodArr");
 		String poIdStr	= request.getParameter("poId");
 		String mode		= request.getParameter("mode");
+		String notes	= request.getParameter("notes");
 		
 		// URL decode if needed (request.getParameter should auto-decode, but just in case)
 		if (invArr != null) invArr = java.net.URLDecoder.decode(invArr, "UTF-8");
@@ -175,6 +176,24 @@ if(Status == 4)
 				display = ph.savePurchaseBill(invArr, payArr, prodArr, uid, poId, mode);
 			} else {
 				display = ph.savePurchaseBill(invArr, payArr, prodArr, uid);
+			}
+			if (notes != null && !notes.trim().isEmpty()
+					&& display != null && display.trim().startsWith("GRN")) {
+				Connection notesCon = null;
+				PreparedStatement notesPs = null;
+				try {
+					notesCon = util.DBConnectionManager.getConnectionFromPool();
+					notesPs = notesCon.prepareStatement(
+						"UPDATE prod_purchase SET po_notes = ? WHERE prno = ? ORDER BY id DESC LIMIT 1");
+					notesPs.setString(1, notes.trim());
+					notesPs.setString(2, display.trim());
+					notesPs.executeUpdate();
+				} catch (Exception notesEx) {
+					// Purchase is already saved; notes failure should not hide the bill number
+				} finally {
+					if (notesPs != null) try { notesPs.close(); } catch (Exception ignore) {}
+					if (notesCon != null) try { notesCon.close(); } catch (Exception ignore) {}
+				}
 			}
 		} catch (Exception e) {
 			// Return error message to client

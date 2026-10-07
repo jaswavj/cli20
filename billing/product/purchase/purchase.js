@@ -855,7 +855,8 @@ function proceedWithPurchaseSave() {
         console.log('invArr:', invArr);
         
         payArr  = payType+ '<#>' +bank+ '<#>' +grandTotal+ '<#>' +paidAmount+ '<#>' +extraDisc+ '<#>' +balanceAmount;
-        var param   = 'status=' +status+ '&invArr=' +encodeURIComponent(invArr)+ '&payArr=' +encodeURIComponent(payArr)+ '&prodArr=' +encodeURIComponent(prodArr)+ '&poId=' +poId+ '&mode=' +mode;
+        var notes = ($('#pm_notes').val() || '').trim();
+        var param   = 'status=' +status+ '&invArr=' +encodeURIComponent(invArr)+ '&payArr=' +encodeURIComponent(payArr)+ '&prodArr=' +encodeURIComponent(prodArr)+ '&poId=' +poId+ '&mode=' +mode+ '&notes=' +encodeURIComponent(notes);
 
         $.ajax({
             type: "POST",

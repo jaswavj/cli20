@@ -1,6 +1,6 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ page language="java" import= "java.util.*"%>
-<%@ page import="java.text.SimpleDateFormat, java.util.Date" %>
+<%@ page import="java.text.SimpleDateFormat, java.util.Date, java.sql.*" %>
 <%
 String purchaseId = request.getParameter("id");
 %>
@@ -53,6 +53,29 @@ String purchaseId = request.getParameter("id");
                 Vector purchaseHeader = prod.getPurchaseHeaderById(Integer.parseInt(purchaseId));
                 if (purchaseHeader != null && !purchaseHeader.isEmpty()) {
                     Vector header = (Vector) purchaseHeader.get(0);
+                    String purchaseNotes = "";
+                    Connection notesCon = null;
+                    PreparedStatement notesPs = null;
+                    ResultSet notesRs = null;
+                    try {
+                        notesCon = util.DBConnectionManager.getConnectionFromPool();
+                        notesPs = notesCon.prepareStatement("SELECT po_notes FROM prod_purchase WHERE id = ?");
+                        notesPs.setInt(1, Integer.parseInt(purchaseId));
+                        notesRs = notesPs.executeQuery();
+                        if (notesRs.next() && notesRs.getString(1) != null) {
+                            purchaseNotes = notesRs.getString(1).trim();
+                        }
+                    } catch (Exception ignoreNotes) {
+                    } finally {
+                        if (notesRs != null) try { notesRs.close(); } catch (Exception ignore) {}
+                        if (notesPs != null) try { notesPs.close(); } catch (Exception ignore) {}
+                        if (notesCon != null) try { notesCon.close(); } catch (Exception ignore) {}
+                    }
+                    String notesHtml = purchaseNotes
+                        .replace("&", "&amp;")
+                        .replace("<", "&lt;")
+                        .replace(">", "&gt;")
+                        .replace("\n", "<br>");
         %>
 
         <!-- Top Section: Purchase Info -->
@@ -105,6 +128,12 @@ String purchaseId = request.getParameter("id");
                         <div class="border rounded p-1 bg-light">
                             <label class="form-label-sm d-block">Balance</label>
                             <span class="fw-bold text-danger">₹<%= header.elementAt(5) %></span>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="border rounded p-1 bg-light">
+                            <label class="form-label-sm d-block">Notes</label>
+                            <span class="fw-bold"><%= notesHtml.isEmpty() ? "—" : notesHtml %></span>
                         </div>
                     </div>
                 </div>
