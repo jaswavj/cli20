@@ -5,7 +5,9 @@
 <%
 String contextPath = request.getContextPath();
 Integer uid = (Integer) session.getAttribute("userId");
+String userName = (String) session.getAttribute("username");
 if (uid == null) { response.sendRedirect(contextPath + "/index.jsp"); return; }
+boolean canViewAllUsers = (uid == 1 || uid == 25);
 
 Vector vecPer = user.getUserPermission(uid);
 Set<Integer> permissions = new HashSet<Integer>();
@@ -22,6 +24,10 @@ String filterUserId = request.getParameter("userId");
 
 if (fromDate==null) fromDate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
 if (toDate==null)   toDate   = fromDate;
+
+if (!canViewAllUsers) {
+    filterUserId = String.valueOf(uid);
+}
 
 // Fetch incentive data using billingBean
 Vector incentiveList = bill.getIncentiveReport(fromDate, toDate, filterUserId);
@@ -173,7 +179,11 @@ int totalRecords = bill.getIncentiveCount(fromDate, toDate, filterUserId);
                 <div class="filter-group">
                     <label>User</label>
                     <select name="userId" id="userFilter">
-                        <option value="all">All Users</option>
+                        <% if (canViewAllUsers) { %>
+                        <option value="all" <%= (filterUserId == null || "all".equals(filterUserId)) ? "selected" : "" %>>All Users</option>
+                        <% } else { %>
+                        <option value="<%=uid%>" selected><%=userName != null ? userName : "Me"%></option>
+                        <% } %>
                     </select>
                 </div>
                 
@@ -267,7 +277,7 @@ int totalRecords = bill.getIncentiveCount(fromDate, toDate, filterUserId);
 </div>
 
 <script>
-// Load users for filter
+<% if (canViewAllUsers) { %>
 document.addEventListener('DOMContentLoaded', function() {
     fetch('<%=contextPath%>/getAllUsers.jsp')
         .then(response => response.json())
@@ -287,6 +297,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => console.error('Error loading users:', error));
 });
+<% } %>
 
 // Export to Excel
 function exportToExcel() {
